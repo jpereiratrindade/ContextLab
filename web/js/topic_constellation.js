@@ -1,6 +1,6 @@
 /**
- * ContextLab — Topic Constellation Canvas Visualizer
- * Renders an interactive knowledge graph dynamically synthesized from documents in use.
+ * ContextLab — Topic Constellation Canvas Visualizer (Refactored Epistemic Abstraction)
+ * Renders a clean, high-level, interactive epistemic map with non-overlapping nodes and clear readability.
  */
 
 import { api } from '../api.js';
@@ -19,30 +19,18 @@ export class TopicConstellation {
     this.hoveredNode = null;
     this.selectedNode = null;
     this.animFrameId = null;
+    this.simulationSteps = 0;
 
     this.categoryColors = {
-      'Projetos': { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.4)' },
-      'Domínios de Pesquisa': { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.4)' },
-      'Métodos & Estratégias': { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
-      'Metadados & Governança': { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' },
-      'Artefatos de Pesquisa': { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.4)' },
-      'Artefatos & Entidades': { bg: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
-      'Conceitos de Pesquisa': { bg: '#818cf8', glow: 'rgba(129, 140, 248, 0.4)' },
-      'Conceitos': { bg: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' },
-      'default': { bg: '#94a3b8', glow: 'rgba(148, 163, 184, 0.3)' }
+      'Projetos': { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.45)', border: '#28dea0' },
+      'Domínios de Pesquisa': { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.45)', border: '#3898ff' },
+      'Métodos & Estratégias': { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.45)', border: '#a855f7' },
+      'Metadados & Governança': { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.45)', border: '#f43f5e' },
+      'Artefatos de Pesquisa': { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.45)', border: '#e9b348' },
+      'Conceitos de Pesquisa': { bg: '#818cf8', glow: 'rgba(129, 140, 248, 0.45)', border: '#818cf8' },
+      'Conceitos': { bg: '#10b981', glow: 'rgba(16, 185, 129, 0.45)', border: '#10b981' },
+      'default': { bg: '#94a3b8', glow: 'rgba(148, 163, 184, 0.35)', border: '#94a3b8' }
     };
-
-    this.palette = [
-      { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.4)' },
-      { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.4)' },
-      { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
-      { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' },
-      { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.4)' },
-      { bg: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
-      { bg: '#818cf8', glow: 'rgba(129, 140, 248, 0.4)' },
-      { bg: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' },
-      { bg: '#f97316', glow: 'rgba(249, 115, 22, 0.4)' }
-    ];
 
     if (this.canvas) {
       this.ctx = this.canvas.getContext('2d');
@@ -53,15 +41,7 @@ export class TopicConstellation {
 
   getCategoryColor(cat) {
     if (!cat) return this.categoryColors.default;
-    if (this.categoryColors[cat]) return this.categoryColors[cat];
-
-    let hash = 0;
-    for (let i = 0; i < cat.length; i++) {
-      hash = (hash * 31 + cat.charCodeAt(i)) % this.palette.length;
-    }
-    const assigned = this.palette[Math.abs(hash)];
-    this.categoryColors[cat] = assigned;
-    return assigned;
+    return this.categoryColors[cat] || this.categoryColors['default'];
   }
 
   resize() {
@@ -69,7 +49,7 @@ export class TopicConstellation {
     const rect = this.container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     this.width = rect.width;
-    this.height = rect.height || 280;
+    this.height = rect.height || 300;
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
     this.ctx.scale(dpr, dpr);
@@ -79,19 +59,19 @@ export class TopicConstellation {
   initEvents() {
     window.addEventListener('resize', () => this.resize());
 
-    this.canvas.addEventListener('mousemove', (e) => {
+    this.canvas?.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      this.handleMouseMove(x, y, e);
+      this.handleMouseMove(x, y);
     });
 
-    this.canvas.addEventListener('mouseleave', () => {
+    this.canvas?.addEventListener('mouseleave', () => {
       this.hoveredNode = null;
       if (this.tooltip) this.tooltip.classList.remove('visible');
     });
 
-    this.canvas.addEventListener('click', () => {
+    this.canvas?.addEventListener('click', () => {
       if (this.hoveredNode) {
         this.selectNode(this.hoveredNode);
       }
@@ -102,14 +82,25 @@ export class TopicConstellation {
     try {
       const data = await api.getTopicGraph();
       state.setTopicGraphData(data);
-      this.nodes = (data.nodes || []).map(n => ({
-        ...n,
-        x: 0,
-        y: 0,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        radius: Math.max(14, Math.min(30, 12 + (n.count || 1) * 2))
-      }));
+      
+      const rawNodes = data.nodes || [];
+      this.nodes = rawNodes.map((n, i) => {
+        let baseRadius = 14;
+        if (n.category === 'Projetos') baseRadius = 22;
+        else if (n.category === 'Domínios de Pesquisa') baseRadius = 18;
+        else if (n.category === 'Métodos & Estratégias') baseRadius = 16;
+
+        return {
+          ...n,
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          radius: baseRadius + Math.min(6, (n.count || 1)),
+          index: i
+        };
+      });
+
       this.edges = data.edges || [];
       this.layoutNodes();
       this.renderDynamicFiltersAndLegend();
@@ -169,14 +160,28 @@ export class TopicConstellation {
     if (!this.width || !this.height || !this.nodes.length) return;
     const centerX = this.width / 2;
     const centerY = this.height / 2;
-    const angleStep = (2 * Math.PI) / this.nodes.length;
+    const count = this.nodes.length;
+    const angleStep = (2 * Math.PI) / count;
 
     this.nodes.forEach((node, i) => {
-      const dist = Math.min(centerX, centerY) * 0.65 + (i % 2 === 0 ? 25 : -25);
+      // Position Projects near center, domains in middle orbit, concepts outer orbit
+      let dist = Math.min(centerX, centerY) * 0.55;
+      if (node.category === 'Projetos') {
+        dist = Math.min(centerX, centerY) * 0.25;
+      } else if (node.category === 'Domínios de Pesquisa') {
+        dist = Math.min(centerX, centerY) * 0.48;
+      } else {
+        dist = Math.min(centerX, centerY) * 0.72;
+      }
+
       const angle = i * angleStep;
       node.x = centerX + Math.cos(angle) * dist;
       node.y = centerY + Math.sin(angle) * dist;
+      node.vx = 0;
+      node.vy = 0;
     });
+
+    this.simulationSteps = 0;
   }
 
   setFilter(category) {
@@ -198,19 +203,19 @@ export class TopicConstellation {
     }
   }
 
-  handleMouseMove(x, y, event) {
+  handleMouseMove(x, y) {
     let found = null;
     for (const node of this.nodes) {
       const dx = x - node.x;
       const dy = y - node.y;
-      if (Math.hypot(dx, dy) <= node.radius + 4) {
+      if (Math.hypot(dx, dy) <= node.radius + 8) {
         found = node;
         break;
       }
     }
 
     this.hoveredNode = found;
-    this.canvas.style.cursor = found ? 'pointer' : 'default';
+    if (this.canvas) this.canvas.style.cursor = found ? 'pointer' : 'default';
 
     if (found && this.tooltip) {
       const colors = this.getCategoryColor(found.category);
@@ -221,11 +226,11 @@ export class TopicConstellation {
         </div>
         <div style="color:#94a3b8; font-size:0.7rem; margin-top:0.2rem;">${found.category}</div>
         <div style="margin-top:0.4rem; font-size:0.72rem; color:#3898ff;">
-          ${found.count} documento(s) relacionado(s) ${found.is_user_interest ? '• <span style="color:#28dea0">★ Seu Documento</span>' : ''}
+          ${found.count} vínculo(s) computável(is) ${found.is_user_interest ? '• <span style="color:#28dea0">★ Seu Documento</span>' : ''}
         </div>
       `;
-      this.tooltip.style.left = `${x}px`;
-      this.tooltip.style.top = `${y - 10}px`;
+      this.tooltip.style.left = `${Math.min(this.width - 200, Math.max(10, x))}px`;
+      this.tooltip.style.top = `${Math.max(10, y - 20)}px`;
       this.tooltip.classList.add('visible');
     } else if (this.tooltip) {
       this.tooltip.classList.remove('visible');
@@ -244,61 +249,130 @@ export class TopicConstellation {
         this.ctx.font = '500 13px "Inter", sans-serif';
         this.ctx.fillStyle = '#64748b';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Nenhum conceito computável indexado. Ingeste documentos para sintetizar a constelação.', this.width / 2, this.height / 2);
+        this.ctx.fillText('Nenhum conceito indexado. Ingeste documentos para sintetizar a constelação.', this.width / 2, this.height / 2);
         return;
       }
 
-      // 1. Draw subtle background coordinate mesh & orbital rings
-      this.ctx.strokeStyle = 'rgba(56, 152, 255, 0.06)';
+      const centerX = this.width / 2;
+      const centerY = this.height / 2;
+
+      // 1. Orbital Background Rings
+      this.ctx.strokeStyle = 'rgba(56, 152, 255, 0.05)';
       this.ctx.lineWidth = 1;
       this.ctx.beginPath();
-      this.ctx.arc(this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.4, 0, Math.PI * 2);
+      this.ctx.arc(centerX, centerY, Math.min(this.width, this.height) * 0.28, 0, Math.PI * 2);
       this.ctx.stroke();
 
       this.ctx.beginPath();
-      this.ctx.arc(this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.68, 0, Math.PI * 2);
+      this.ctx.arc(centerX, centerY, Math.min(this.width, this.height) * 0.52, 0, Math.PI * 2);
       this.ctx.stroke();
 
-      // 2. Physics & drift simulation
-      this.nodes.forEach(n => {
-        n.x += n.vx + Math.sin(time + n.radius) * 0.12;
-        n.y += n.vy + Math.cos(time + n.radius) * 0.12;
+      // 2. Physics Simulation with Repulsion and Soft Damping
+      const nodeMap = new Map(this.nodes.map(n => [n.id, n]));
 
-        const pad = n.radius + 15;
-        if (n.x < pad) { n.x = pad; n.vx *= -1; }
-        if (n.x > this.width - pad) { n.x = this.width - pad; n.vx *= -1; }
-        if (n.y < pad) { n.y = pad; n.vy *= -1; }
-        if (n.y > this.height - pad) { n.y = this.height - pad; n.vy *= -1; }
-      });
+      if (this.simulationSteps < 150) {
+        this.simulationSteps++;
+
+        // Node-node repulsion
+        for (let i = 0; i < this.nodes.length; i++) {
+          for (let j = i + 1; j < this.nodes.length; j++) {
+            const n1 = this.nodes[i];
+            const n2 = this.nodes[j];
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const minDist = (n1.radius + n2.radius) * 3.2;
+
+            if (dist < minDist) {
+              const force = ((minDist - dist) / minDist) * 0.4;
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              n1.vx -= fx;
+              n1.vy -= fy;
+              n2.vx += fx;
+              n2.vy += fy;
+            }
+          }
+        }
+
+        // Edge spring attraction
+        this.edges.forEach(edge => {
+          const src = nodeMap.get(edge.source);
+          const tgt = nodeMap.get(edge.target);
+          if (!src || !tgt) return;
+
+          const dx = tgt.x - src.x;
+          const dy = tgt.y - src.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const targetDist = 110;
+          const springForce = (dist - targetDist) * 0.005;
+
+          const fx = (dx / dist) * springForce;
+          const fy = (dy / dist) * springForce;
+          src.vx += fx;
+          src.vy += fy;
+          tgt.vx -= fx;
+          tgt.vy -= fy;
+        });
+
+        // Center pull & boundary constraints
+        this.nodes.forEach(n => {
+          const dxCenter = centerX - n.x;
+          const dyCenter = centerY - n.y;
+          n.vx += dxCenter * 0.002;
+          n.vy += dyCenter * 0.002;
+
+          // Apply velocity with damping
+          n.x += n.vx;
+          n.y += n.vy;
+          n.vx *= 0.88;
+          n.vy *= 0.88;
+
+          const pad = n.radius + 20;
+          n.x = Math.max(pad, Math.min(this.width - pad, n.x));
+          n.y = Math.max(pad, Math.min(this.height - pad, n.y));
+        });
+      } else {
+        // Subtle organic breathing motion once stabilized
+        this.nodes.forEach(n => {
+          n.x += Math.sin(time + n.index) * 0.08;
+          n.y += Math.cos(time + n.index * 1.3) * 0.08;
+        });
+      }
 
       // 3. Draw Edges
-      const nodeMap = new Map(this.nodes.map(n => [n.id, n]));
       this.edges.forEach(edge => {
         const src = nodeMap.get(edge.source);
         const tgt = nodeMap.get(edge.target);
         if (!src || !tgt) return;
 
         const isHighlighted = (this.hoveredNode && (this.hoveredNode.id === src.id || this.hoveredNode.id === tgt.id));
-        const alpha = isHighlighted ? 0.65 : 0.18;
+        const srcMatch = (this.activeFilter === 'all' || src.category === this.activeFilter);
+        const tgtMatch = (this.activeFilter === 'all' || tgt.category === this.activeFilter);
+
+        let alpha = 0.15;
+        if (isHighlighted) alpha = 0.8;
+        else if (srcMatch && tgtMatch) alpha = 0.25;
+        else alpha = 0.05;
 
         this.ctx.beginPath();
         this.ctx.moveTo(src.x, src.y);
         this.ctx.lineTo(tgt.x, tgt.y);
         this.ctx.strokeStyle = isHighlighted ? '#3898ff' : `rgba(56, 152, 255, ${alpha})`;
-        this.ctx.lineWidth = isHighlighted ? 2 : Math.max(1, edge.weight * 0.6);
+        this.ctx.lineWidth = isHighlighted ? 2.2 : 1.2;
         this.ctx.stroke();
       });
 
-      // 4. Draw Nodes
+      // 4. Draw Nodes and High-Contrast Pill Badges
       this.nodes.forEach(node => {
         const matchesFilter = (this.activeFilter === 'all' || node.category === this.activeFilter);
         const isHovered = (this.hoveredNode && this.hoveredNode.id === node.id);
         const isSelected = (this.selectedNode && this.selectedNode.id === node.id);
         const colors = this.getCategoryColor(node.category);
 
-        const opacity = matchesFilter ? 1 : 0.22;
+        const opacity = matchesFilter ? 1 : 0.25;
 
-        // Glow ring for user interest or hovered
+        // Glow ring for highlighted nodes
         if (node.is_user_interest || isHovered || isSelected) {
           this.ctx.beginPath();
           this.ctx.arc(node.x, node.y, node.radius + (isHovered ? 8 : 4) + Math.sin(time * 3) * 2, 0, Math.PI * 2);
@@ -306,7 +380,7 @@ export class TopicConstellation {
           this.ctx.fill();
         }
 
-        // Main node circle
+        // Main node body
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         this.ctx.fillStyle = matchesFilter ? colors.bg : 'rgba(71, 85, 105, 0.4)';
@@ -314,15 +388,37 @@ export class TopicConstellation {
         this.ctx.fill();
 
         this.ctx.strokeStyle = '#ffffff';
-        this.ctx.lineWidth = isHovered ? 2.5 : 1.2;
+        this.ctx.lineWidth = isHovered ? 2.5 : 1.4;
         this.ctx.stroke();
         this.ctx.globalAlpha = 1;
 
-        // Node Label
-        this.ctx.font = `${isHovered ? '600 11px' : '500 10px'} "Inter", sans-serif`;
-        this.ctx.fillStyle = matchesFilter ? '#f8fafc' : '#64748b';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(node.label, node.x, node.y + node.radius + 13);
+        // Label Pill Badge (Clean, High-Legibility)
+        const labelText = node.label;
+        this.ctx.font = `${isHovered ? '600 11px' : '500 10.5px'} "Inter", sans-serif`;
+        const textMetrics = this.ctx.measureText(labelText);
+        const textWidth = textMetrics.width;
+        const pillHeight = 18;
+        const pillWidth = textWidth + 12;
+        const pillX = node.x - pillWidth / 2;
+        const pillY = node.y + node.radius + 4;
+
+        if (matchesFilter) {
+          // Pill background
+          this.ctx.fillStyle = isHovered ? 'rgba(15, 23, 42, 0.95)' : 'rgba(10, 15, 30, 0.85)';
+          this.ctx.strokeStyle = isHovered ? colors.border : 'rgba(255, 255, 255, 0.15)';
+          this.ctx.lineWidth = 1;
+
+          this.ctx.beginPath();
+          this.ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 9);
+          this.ctx.fill();
+          this.ctx.stroke();
+
+          // Pill text
+          this.ctx.fillStyle = isHovered ? '#ffffff' : '#e2e8f0';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText(labelText, node.x, pillY + pillHeight / 2);
+        }
       });
 
       this.animFrameId = requestAnimationFrame(render);

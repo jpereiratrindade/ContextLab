@@ -620,6 +620,20 @@
   color: var(--cl-text-0);
 }
 
+.cl-chip.active {
+  background: rgba(56, 152, 255, 0.25);
+  border-color: var(--cl-blue);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(56, 152, 255, 0.3);
+}
+
+.cl-exp-card.active-card {
+  border-color: var(--cl-cyan) !important;
+  box-shadow: 0 0 16px rgba(40, 222, 160, 0.25);
+  background: rgba(26, 42, 68, 0.45);
+}
+
 /* Dual Answer Cards Grid */
 .cl-answers-grid {
   display: grid;
@@ -636,10 +650,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: all var(--cl-transition-fast);
 }
 
-.cl-answer-meta-card:hover {
+.cl-answer-meta-card:hover,
+.cl-answer-meta-card.active-answer {
   box-shadow: var(--cl-glow-green);
+  border-color: var(--cl-green);
 }
 
 .cl-answer-meta-header {
@@ -720,10 +737,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: all var(--cl-transition-fast);
 }
 
-.cl-answer-deep-card:hover {
+.cl-answer-deep-card:hover,
+.cl-answer-deep-card.active-answer {
   box-shadow: var(--cl-glow-gold);
+  border-color: var(--cl-gold);
 }
 
 .cl-btn-deepen-primary {

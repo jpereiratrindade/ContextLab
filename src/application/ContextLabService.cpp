@@ -486,97 +486,103 @@ core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std:
         return out;
     };
 
+    // Helper to test if an ID is a low-level versioned hash/token (e.g. contains @ or ends in version numbers)
+    auto is_low_level_artifact = [](const std::string& id) -> bool {
+        return id.find('@') != std::string::npos || id.find(":R:") != std::string::npos || id.find(":RUN:") != std::string::npos;
+    };
+
     for (const auto& doc : accessible_docs) {
         bool is_owned = (user.has_value() && !doc.owner.empty() && doc.owner == user->email);
 
-        // 1. Concepts in document
+        // 1. Projects (Primary Epistemic Anchors)
+        std::string proj_id = doc.primary_project.empty() ? "ContextLab" : doc.primary_project;
+        auto proj_opt = repo_->getProject(proj_id).value_or(std::nullopt);
+        std::string proj_name = (proj_opt.has_value() && !proj_opt->name.empty()) ? proj_opt->name : proj_id;
+
+        if (node_map.find(proj_id) == node_map.end()) {
+            node_map[proj_id] = domain::TopicGraphNode{
+                .id = proj_id,
+                .label = proj_name,
+                .category = "Projetos",
+                .count = 1,
+                .weight = 2.5 + (is_owned ? 0.8 : 0.0),
+                .is_user_interest = is_owned
+            };
+        } else {
+            auto& n = node_map[proj_id];
+            n.count += 1;
+            n.weight += 0.5;
+            if (is_owned) n.is_user_interest = true;
+        }
+
+        // Project Research Domains
+        if (proj_opt.has_value()) {
+            for (const auto& dom : proj_opt->research_domain) {
+                std::string dom_id = "domain:" + dom;
+                if (node_map.find(dom_id) == node_map.end()) {
+                    node_map[dom_id] = domain::TopicGraphNode{
+                        .id = dom_id,
+                        .label = format_label(dom),
+                        .category = "Domínios de Pesquisa",
+                        .count = 1,
+                        .weight = 1.8,
+                        .is_user_interest = is_owned
+                    };
+                } else {
+                    node_map[dom_id].count += 1;
+                }
+                add_edge(proj_id, dom_id, "abrange", 2);
+            }
+        }
+
+        // 2. High-Level Concepts & Epistemic Pillars in Document
         auto concepts = repo_->getConceptsForDocument(doc.id).value_or(std::vector<domain::Concept>{});
+        std::vector<std::string> valid_concept_ids;
+
         for (const auto& c : concepts) {
+            if (is_low_level_artifact(c.id)) continue;
+            valid_concept_ids.push_back(c.id);
+
             if (node_map.find(c.id) == node_map.end()) {
                 node_map[c.id] = domain::TopicGraphNode{
                     .id = c.id,
                     .label = c.label.empty() ? format_label(c.id) : c.label,
                     .category = categorize_role(c.role),
                     .count = 1,
-                    .weight = 1.2 + (is_owned ? 0.6 : 0.0),
+                    .weight = 1.4 + (is_owned ? 0.4 : 0.0),
                     .is_user_interest = is_owned
                 };
             } else {
                 auto& n = node_map[c.id];
                 n.count += 1;
-                n.weight += 0.4 + (is_owned ? 0.4 : 0.0);
-                if (is_owned) n.is_user_interest = true;
-            }
-        }
-
-        // Co-occurrence edges between concepts in the same document
-        for (size_t i = 0; i < concepts.size(); ++i) {
-            for (size_t j = i + 1; j < concepts.size(); ++j) {
-                add_edge(concepts[i].id, concepts[j].id, "co-occurs", 1);
-            }
-        }
-
-        // 2. Projects & Research Domains
-        if (!doc.primary_project.empty()) {
-            std::string proj_id = doc.primary_project;
-            auto proj_opt = repo_->getProject(proj_id).value_or(std::nullopt);
-            std::string proj_name = (proj_opt.has_value() && !proj_opt->name.empty()) ? proj_opt->name : proj_id;
-
-            if (node_map.find(proj_id) == node_map.end()) {
-                node_map[proj_id] = domain::TopicGraphNode{
-                    .id = proj_id,
-                    .label = proj_name,
-                    .category = "Projetos",
-                    .count = 1,
-                    .weight = 1.6 + (is_owned ? 0.6 : 0.0),
-                    .is_user_interest = is_owned
-                };
-            } else {
-                auto& n = node_map[proj_id];
-                n.count += 1;
-                n.weight += 0.5;
+                n.weight += 0.3 + (is_owned ? 0.3 : 0.0);
                 if (is_owned) n.is_user_interest = true;
             }
 
-            // Link concepts in this document to the project
-            for (const auto& c : concepts) {
-                add_edge(proj_id, c.id, "desenvolve", 1);
-            }
-
-            // Project domains
-            if (proj_opt.has_value()) {
-                for (const auto& dom : proj_opt->research_domain) {
-                    std::string dom_id = "domain:" + dom;
-                    if (node_map.find(dom_id) == node_map.end()) {
-                        node_map[dom_id] = domain::TopicGraphNode{
-                            .id = dom_id,
-                            .label = format_label(dom),
-                            .category = "Domínios de Pesquisa",
-                            .count = 1,
-                            .weight = 1.3,
-                            .is_user_interest = is_owned
-                        };
-                    } else {
-                        node_map[dom_id].count += 1;
-                    }
-                    add_edge(proj_id, dom_id, "abrange", 2);
-                }
-            }
+            // Connect concepts directly to project hub
+            add_edge(proj_id, c.id, "desenvolve", 1);
         }
 
-        // 3. Document Relations
+        // Connect only immediate sequential concepts instead of full O(N^2) mesh to keep graph clean
+        for (size_t i = 0; i + 1 < valid_concept_ids.size(); ++i) {
+            add_edge(valid_concept_ids[i], valid_concept_ids[i + 1], "relaciona-se", 1);
+        }
+
+        // 3. Document Relations (filtered for high-level meaningful entities only)
         auto relations = repo_->getRelationsForDocument(doc.id).value_or(std::vector<domain::Relation>{});
         for (const auto& r : relations) {
             const std::string& subj_id = r.subject;
             const std::string& obj_id = r.object;
 
+            if (is_low_level_artifact(subj_id) || is_low_level_artifact(obj_id)) continue;
+
             if (node_map.find(subj_id) == node_map.end()) {
                 node_map[subj_id] = domain::TopicGraphNode{
                     .id = subj_id,
                     .label = format_label(subj_id),
-                    .category = "Artefatos & Entidades",
+                    .category = "Artefatos de Pesquisa",
                     .count = 1,
-                    .weight = 1.1,
+                    .weight = 1.2,
                     .is_user_interest = is_owned
                 };
             }
@@ -584,9 +590,9 @@ core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std:
                 node_map[obj_id] = domain::TopicGraphNode{
                     .id = obj_id,
                     .label = format_label(obj_id),
-                    .category = "Artefatos & Entidades",
+                    .category = "Artefatos de Pesquisa",
                     .count = 1,
-                    .weight = 1.1,
+                    .weight = 1.2,
                     .is_user_interest = false
                 };
             }
@@ -594,6 +600,7 @@ core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std:
         }
     }
 
+    // Collect into return payload
     data.nodes.reserve(node_map.size());
     for (const auto& [_, node] : node_map) {
         data.nodes.push_back(node);
@@ -601,7 +608,10 @@ core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std:
 
     data.edges.reserve(edge_map.size());
     for (const auto& [_, edge] : edge_map) {
-        data.edges.push_back(edge);
+        // Ensure both edge endpoints exist in the nodes list
+        if (node_map.find(edge.source) != node_map.end() && node_map.find(edge.target) != node_map.end()) {
+            data.edges.push_back(edge);
+        }
     }
 
     data.total_documents = static_cast<int>(accessible_docs.size());
