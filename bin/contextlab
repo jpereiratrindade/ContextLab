@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ContextLab thin launcher
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Search for the compiled binary in standard build directories
+CANDIDATE_PATHS=(
+    "${REPO_ROOT}/build/contextlab"
+    "${REPO_ROOT}/build/bin/contextlab"
+    "${REPO_ROOT}/build/Release/contextlab"
+    "${REPO_ROOT}/build/Debug/contextlab"
+)
+
+BINARY=""
+for candidate in "${CANDIDATE_PATHS[@]}"; do
+    if [[ -x "${candidate}" ]]; then
+        BINARY="${candidate}"
+        break
+    fi
+done
+
+if [[ -z "${BINARY}" ]]; then
+    echo "Erro: O executável ContextLab não foi encontrado." >&2
+    echo "Por favor, compile o projeto antes de executar:" >&2
+    echo "  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release" >&2
+    echo "  cmake --build build -j \$(nproc)" >&2
+    exit 1
+fi
+
+exec "${BINARY}" "$@"

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextLab — Laboratório de Contexto Documental Computável</title>
+  <meta name="description" content="Laboratório em C++26 para investigar documentos de pesquisa autodescritivos, preservando autoridade, proveniência e leitura seletiva metadata-first.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header & Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="#" class="brand" onclick="window.location.reload()">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="brand-title">ContextLab</span>
+            <span class="brand-badge">C++26 Baseline</span>
+          </div>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <button class="nav-btn active" data-view="corpus">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Corpus
+        </button>
+        <button class="nav-btn" data-view="relations">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Relações
+        </button>
+        <button class="nav-btn" data-view="schemas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Schemas
+        </button>
+        <button class="nav-btn" data-view="events">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Auditoria
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-primary" id="btn-open-upload">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Ingerir Documento
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="app-main">
+
+    <!-- View: Corpus -->
+    <section class="view-section active" id="view-corpus">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <div class="hero-subtitle">Laboratório de Contexto Documental Computável</div>
+        <h1 class="hero-title">Contexto Declarado antes de Interpretação Textual</h1>
+        <p class="hero-desc">
+          Organização, linhagem e recuperação de artefatos de pesquisa estruturados a partir de metadados autoritativos. Análise de texto profundo sob demanda sem desperdício de CPU/Memória.
+        </p>
+      </div>
+
+      <!-- Live Corpus Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Documentos no Corpus</div>
+          <div class="stat-value" id="stat-docs-count">1</div>
+          <div class="stat-note">Entidades lógicas indexadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Projetos Ativos</div>
+          <div class="stat-value" id="stat-proj-count">1</div>
+          <div class="stat-note">Domínios de pesquisa</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Relações Mapeadas</div>
+          <div class="stat-value" id="stat-rel-count">5</div>
+          <div class="stat-note">Arestas semânticas no corpus</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Schemas de Metadados</div>
+          <div class="stat-value" id="stat-schema-count">1</div>
+          <div class="stat-note">JSON Schema Draft 2020-12</div>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-section">
+        <div class="search-bar-container">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; color: var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Buscar por identidade, proveniência, conceitos ou relações (ex: ContextLab, proveniência, por que...)">
+          <select id="search-mode" class="search-mode-select">
+            <option value="auto">Modo: Automático (Metadata-First)</option>
+            <option value="metadata">Forçar Metadados</option>
+            <option value="text">Forçar Texto (FTS5)</option>
+          </select>
+        </div>
+
+        <!-- Routing Pill Indicator -->
+        <div id="routing-box" class="routing-pill-box" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div id="routing-badge-container"></div>
+            <span class="routing-reason" id="routing-reason-text"></span>
+          </div>
+        </div>
+
+        <!-- Search Results List -->
+        <div id="search-results-container" style="margin-top: 1rem;"></div>
+      </div>
+
+      <!-- Documents Grid Title -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-family: var(--font-display); font-size: 1.25rem;">Documentos no Laboratório</h2>
+      </div>
+
+      <div class="documents-grid" id="docs-grid"></div>
+    </section>
+
+    <!-- View: Document Inspector (8 Tabs) -->
+    <section class="view-section" id="view-inspector">
+      <div id="inspector-content"></div>
+    </section>
+
+    <!-- View: Relations -->
+    <section class="view-section" id="view-relations">
+      <div id="relations-content"></div>
+    </section>
+
+    <!-- View: Schemas -->
+    <section class="view-section" id="view-schemas">
+      <div id="schemas-content"></div>
+    </section>
+
+    <!-- View: Events / Audit -->
+    <section class="view-section" id="view-events">
+      <div id="events-content"></div>
+    </section>
+
+  </main>
+
+  <!-- Ingestion Upload Modal -->
+  <div class="modal-overlay" id="upload-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-display); font-size: 1.15rem;">Ingerir Documento de Pesquisa</h3>
+        <button id="btn-close-upload" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+          Formatos suportados: Markdown autodescritivo (<code>.md</code>), PDF com metadados em anexo (<code>.pdf</code>), JSON de metadados (<code>.json</code>), LaTeX (<code>.tex</code>) e Texto simples (<code>.txt</code>).
+        </p>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="file-input" style="display: none;" accept=".md,.pdf,.json,.tex,.txt">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-primary); margin-bottom: 0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Arraste e solte o arquivo aqui</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">ou clique para navegar no sistema de arquivos</div>
+        </div>
+        <div id="upload-status" style="margin-top: 1rem; font-size: 0.85rem; text-align: center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:contextlab:document-context:0.1.0",
+  "title": "ContextLab Document Context Schema",
+  "description": "Authoritative metadata envelope for self-describing research documents in ContextLab",
+  "type": "object",
+  "required": [
+    "schema",
+    "document",
+    "responsibility",
+    "project_context",
+    "provenance",
+    "epistemic_context",
+    "semantic_context",
+    "computational_processing",
+    "technical"
+  ],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "required": ["id", "version", "authority"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" },
+        "profile": { "type": "string" },
+        "authority": { "type": "string" },
+        "serialization": { "type": "string" }
+      }
+    },
+    "document": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "version",
+        "date_created",
+        "language",
+        "document_type",
+        "primary_project"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "version": { "type": "string" },
+        "date_created": { "type": "string" },
+        "date_modified": { "type": "string" },
+        "language": { "type": "string" },
+        "document_type": { "type": "string" },
+        "lifecycle_state": { "type": "string" },
+        "publication_state": { "type": "string" },
+        "primary_project": { "type": "string" },
+        "resource_scope": { "type": "string" },
+        "self_describing": { "type": "boolean" },
+        "self_consumption_required": { "type": "boolean" }
+      }
+    },
+    "responsibility": {
+      "type": "object",
+      "properties": {
+        "scientific_and_product_authority": { "type": "string" },
+        "document_authority": { "type": "string" },
+        "implementation_authority": { "type": "string" },
+        "human_validation_required": { "type": "boolean" },
+        "construction_assistance": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "project_context": {
+      "type": "object",
+      "required": ["project", "object_of_study", "central_question"],
+      "properties": {
+        "project": { "type": "string" },
+        "project_kind": { "type": "string" },
+        "research_domain": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "research_stage": { "type": "string" },
+        "object_of_study": { "type": "string" },
+        "central_question": { "type": "string" },
+        "engineering_question": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["origin_context", "identity_boundary", "source_basis"],
+      "properties": {
+        "origin_context": { "type": "string" },
+        "origin_context_role": { "type": "string" },
+        "motivating_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" },
+              "relation": { "type": "string" }
+            }
+          }
+        },
+        "identity_boundary": { "type": "string" },
+        "source_basis": { "type": "string" },
+        "heritage_policy": { "type": "string" }
+      }
+    },
+    "epistemic_context": {
+      "type": "object",
+      "required": ["status", "main_claim", "not_claimed"],
+      "properties": {
+        "status": { "type": "string" },
+        "claim_maturity": { "type": "string" },
+        "evidence_level": { "type": "string" },
+        "main_claim": { "type": "string" },
+        "not_claimed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "failure_conditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "semantic_context": {
+      "type": "object",
+      "required": ["primary_concepts", "keywords"],
+      "properties": {
+        "primary_concepts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "distinctions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject", "predicate", "object"],
+        "properties": {
+          "subject": { "type": "string" },
+          "predicate": { "type": "string" },
+          "object": { "type": "string" }
+        }
+      }
+    },
+    "quality_and_review": {
+      "type": "object",
+      "properties": {
+        "review_model": { "type": "string" },
+        "required_gates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "next_review_trigger": { "type": "string" }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "properties": {
+        "confidentiality": { "type": "string" },
+        "sensitivity": { "type": "string" },
+        "license": { "type": "string" },
+        "allowed_use": { "type": "string" },
+        "authority_rule": { "type": "string" },
+        "default_network_scope": { "type": "string" }
+      }
+    },
+    "computational_processing": {
+      "type": "object",
+      "required": [
+        "metadata_priority",
+        "metadata_only_sufficient_for",
+        "text_analysis_required_for",
+        "derived_metadata_policy"
+      ],
+      "properties": {
+        "metadata_priority": { "type": "string" },
+        "machine_summary": { "type": "string" },
+        "metadata_only_sufficient_for": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "text_analysis_required_for": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deep_text_analysis_triggers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "do_not_expand_text_when": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "derived_metadata_policy": { "type": "string" },
+        "self_consumption": {
+          "type": "object",
+          "properties": {
+            "required": { "type": "boolean" },
+            "bootstrap_document_id": { "type": "string" },
+            "acceptance_rule": { "type": "string" }
+          }
+        }
+      }
+    },
+    "technical": {
+      "type": "object",
+      "required": ["implementation_language", "encoding"],
+      "properties": {
+        "implementation_language": { "type": "string" },
+        "build_system": { "type": "string" },
+        "primary_binary": { "type": "string" },
+        "storage": { "type": "string" },
+        "web": { "type": "string" },
+        "api_style": { "type": "string" },
+        "source_format": { "type": "string" },
+        "metadata_embedding": { "type": "string" },
+        "encoding": { "type": "string" }
+      }
+    }
+  }
+}
