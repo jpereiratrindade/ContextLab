@@ -5,188 +5,540 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ContextLab — Laboratório de Contexto Documental Computável</title>
   <meta name="description" content="Laboratório em C++26 para investigar documentos de pesquisa autodescritivos, preservando autoridade, proveniência e leitura seletiva metadata-first.">
-  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- Header & Navigation -->
-  <header class="app-header">
-    <div class="header-container">
-      <a href="#" class="brand" onclick="window.location.reload()">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  <div class="app-container">
+
+    <!-- ====================================================================
+         1. Left Sidebar Navigation (~10-11%)
+         ==================================================================== -->
+    <aside class="cl-sidebar">
+      <div>
+        <a href="#" class="cl-sidebar-brand" id="btn-nav-brand">
+          <svg class="cl-brand-icon" viewBox="0 0 24 24" fill="none">
+            <polygon points="12 2 21 7 21 17 12 22 3 17 3 7" stroke="#3898ff" stroke-width="2" fill="rgba(56, 152, 255, 0.15)"/>
+            <polygon points="12 6 18 9.5 18 14.5 12 18 6 14.5 6 9.5" stroke="#28dea0" stroke-width="1.5" fill="rgba(40, 222, 160, 0.2)"/>
+          </svg>
+          <span class="cl-brand-name">ContextLab</span>
+        </a>
+
+        <ul class="cl-nav-list">
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn active" data-view="inicio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Início</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="corpus">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>Meus documentos</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" id="btn-sidebar-ingest">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Ingestão</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Busca</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="projects">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+              <span>Exploração</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="relations">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span>Relações</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="events">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Proveniência</span>
+            </button>
+          </li>
+          <li class="cl-nav-item">
+            <button class="cl-nav-btn" data-view="schemas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              <span>Schemas</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="cl-sidebar-footer">
+        <div class="cl-sidebar-quote">
+          “Perguntas melhores.<br>Contextos mais ricos.”
+        </div>
+        <div class="cl-sidebar-status">
+          <span>v0.1.0</span>
+          <span class="cl-status-pill"><span class="cl-status-dot"></span> READY</span>
+        </div>
+        <div class="cl-sidebar-subtext">
+          Um ambiente independente.<br>Novas perguntas para novos horizontes.
+        </div>
+      </div>
+    </aside>
+
+    <!-- ====================================================================
+         2. Central Main Region (~78%)
+         ==================================================================== -->
+    <main class="cl-main-region">
+
+      <!-- Top Conceptual Tier -->
+      <header class="cl-conceptual-header">
+        <div class="cl-header-identity">
+          <div class="cl-header-logo-group">
+            <svg class="cl-header-logo-svg" viewBox="0 0 36 36" fill="none">
+              <polygon points="18 3 31.5 10.5 31.5 25.5 18 33 4.5 25.5 4.5 10.5" stroke="#3898ff" stroke-width="2.5" fill="rgba(56, 152, 255, 0.18)"/>
+              <polygon points="18 8 27 13 27 23 18 28 9 23 9 13" stroke="#28dea0" stroke-width="2" fill="rgba(40, 222, 160, 0.25)"/>
+            </svg>
+            <div class="cl-header-titles">
+              <h1>ContextLab</h1>
+              <p>Laboratório de contexto documental computável</p>
+            </div>
+          </div>
+          <div class="cl-header-quote">
+            Documentos em contexto.<br>Decisões com base.
+          </div>
+        </div>
+
+        <!-- 3 Connected Glowing Spheres -->
+        <div class="cl-spheres-container">
+          <svg class="cl-spheres-svg-connections">
+            <line x1="15%" y1="50%" x2="50%" y2="50%" stroke="rgba(56, 152, 255, 0.4)" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="50%" y1="50%" x2="85%" y2="50%" stroke="rgba(233, 179, 72, 0.4)" stroke-width="2" stroke-dasharray="4 4"/>
+          </svg>
+
+          <!-- Sphere 1: Ingestão -->
+          <div class="cl-sphere-node cl-sphere-ingest" id="sphere-ingest">
+            <div class="cl-sphere-content">
+              <svg class="cl-sphere-icon" viewBox="0 0 24 24" fill="none" stroke="#28dea0" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              <div class="cl-sphere-title">Ingestão</div>
+              <div class="cl-sphere-desc">Seus documentos<br>no laboratório</div>
+            </div>
+          </div>
+
+          <!-- Sphere 2: Exploração -->
+          <div class="cl-sphere-node cl-sphere-explore" id="sphere-explore">
+            <div class="cl-sphere-content">
+              <svg class="cl-sphere-icon" viewBox="0 0 24 24" fill="none" stroke="#3898ff" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <div class="cl-sphere-title">Exploração</div>
+              <div class="cl-sphere-desc">Metadados,<br>relações, sentido</div>
+            </div>
+          </div>
+
+          <!-- Sphere 3: Decisão -->
+          <div class="cl-sphere-node cl-sphere-decision" id="sphere-decision">
+            <div class="cl-sphere-content">
+              <svg class="cl-sphere-icon" viewBox="0 0 24 24" fill="none" stroke="#e9b348" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/></svg>
+              <div class="cl-sphere-title">Decisão</div>
+              <div class="cl-sphere-desc">Aprofunde apenas<br>quando necessário</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- View: Início (Canonical App Shell Window) -->
+      <section class="view-section active" id="view-inicio">
+        <div class="cl-app-window">
+          
+          <!-- Browser Chrome Top Bar -->
+          <div class="cl-window-chrome">
+            <div class="cl-chrome-left">
+              <div class="cl-window-dots">
+                <span class="cl-window-dot cl-dot-red"></span>
+                <span class="cl-window-dot cl-dot-yellow"></span>
+                <span class="cl-window-dot cl-dot-green"></span>
+              </div>
+              <span class="cl-chrome-app-title">ContextLab</span>
+              <div class="cl-chrome-url-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                app.contextlab.local
+              </div>
+            </div>
+
+            <div class="cl-chrome-search">
+              <svg class="cl-chrome-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="cl-chrome-search-input" id="global-search-input" placeholder="Buscar documentos, perguntas, conceitos...">
+              <kbd class="cl-chrome-search-kbd">/</kbd>
+            </div>
+
+            <div class="cl-chrome-right">
+              <button class="cl-chrome-btn" title="Notificações">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </button>
+              <div class="cl-avatar-pill">LR</div>
+            </div>
+          </div>
+
+          <!-- Window Inner Content -->
+          <div class="cl-window-body">
+
+            <!-- Tier 1: 4 Top Experiment Cards -->
+            <div class="cl-experiments-grid">
+              <!-- Card 1: CL-EXP-000 (Green) -->
+              <div class="cl-exp-card cl-exp-green">
+                <div class="cl-exp-header">
+                  <div class="cl-exp-icon-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </div>
+                  <div class="cl-exp-meta">
+                    <div class="cl-exp-code-row">
+                      <span class="cl-exp-code">CL-EXP-000</span>
+                      <span class="cl-exp-badge cl-badge-ready">pronto para teste</span>
+                    </div>
+                    <div class="cl-exp-title">autoingestão</div>
+                  </div>
+                </div>
+                <div class="cl-exp-desc">
+                  Ingestão automática, extração de metadados e preparo para análise.
+                </div>
+                <div class="cl-exp-actions">
+                  <button class="cl-exp-action-btn" id="btn-test-exp-000">Testar experimento →</button>
+                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                </div>
+              </div>
+
+              <!-- Card 2: CL-EXP-001 (Blue) -->
+              <div class="cl-exp-card cl-exp-blue">
+                <div class="cl-exp-header">
+                  <div class="cl-exp-icon-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  </div>
+                  <div class="cl-exp-meta">
+                    <div class="cl-exp-code-row">
+                      <span class="cl-exp-code">CL-EXP-001</span>
+                      <span class="cl-exp-badge cl-badge-meta">metadata-first</span>
+                    </div>
+                    <div class="cl-exp-title">RES-SAIT</div>
+                  </div>
+                </div>
+                <div class="cl-exp-desc">
+                  Responde a partir de metadados declarados e derivados.
+                </div>
+                <div class="cl-exp-actions">
+                  <button class="cl-exp-action-btn" id="btn-test-exp-001">Testar experimento →</button>
+                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                </div>
+              </div>
+
+              <!-- Card 3: CL-EXP-002 (Gold) -->
+              <div class="cl-exp-card cl-exp-gold">
+                <div class="cl-exp-header">
+                  <div class="cl-exp-icon-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                  </div>
+                  <div class="cl-exp-meta">
+                    <div class="cl-exp-code-row">
+                      <span class="cl-exp-code">CL-EXP-002</span>
+                      <span class="cl-exp-badge cl-badge-deep">exige aprofundamento</span>
+                    </div>
+                    <div class="cl-exp-title">aprofundamento seletivo</div>
+                  </div>
+                </div>
+                <div class="cl-exp-desc">
+                  Lê o conteúdo quando necessário, com rastreabilidade e evidências.
+                </div>
+                <div class="cl-exp-actions">
+                  <button class="cl-exp-action-btn" id="btn-test-exp-002">Testar experimento →</button>
+                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                </div>
+              </div>
+
+              <!-- Card 4: Repositório Próprio -->
+              <div class="cl-repo-card">
+                <div>
+                  <div class="cl-repo-header">
+                    <div class="cl-repo-title">Repositório próprio</div>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 21 7 21 17 12 22 3 17 3 7" stroke="#3898ff" stroke-width="2"/></svg>
+                  </div>
+                  <ul class="cl-repo-list">
+                    <li><span class="cl-repo-check">✓</span> Sem herança de código</li>
+                    <li><span class="cl-repo-check">✓</span> Arquitetura independente</li>
+                    <li><span class="cl-repo-check">✓</span> Foco em pesquisa aberta</li>
+                    <li><span class="cl-repo-check">✓</span> Evolução contínua</li>
+                  </ul>
+                </div>
+                <div class="cl-repo-footer">
+                  <span>ContextLab</span>
+                  <span>∞</span>
+                  <span>Pesquisa sem amarras</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tier 2: 3-Column Operational Workspace -->
+            <div class="cl-operational-grid">
+              
+              <!-- Column 1: Ingestão de Documentos -->
+              <div class="cl-ingest-panel">
+                <div class="cl-panel-title-row">
+                  <div class="cl-panel-title">Ingestar documento</div>
+                  <button style="background:none; border:none; color:var(--cl-text-muted); cursor:pointer;">✕</button>
+                </div>
+
+                <div class="cl-dropzone-box" id="main-dropzone">
+                  <input type="file" id="main-file-input" style="display: none;" accept=".pdf,.json,.md,.tex,.txt">
+                  <svg class="cl-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <div class="cl-dropzone-main-text">Arraste e solte arquivos aqui<br>ou clique para selecionar</div>
+                  <div class="cl-dropzone-formats">PDF, JSON, Markdown, LaTeX (ou um lote de arquivos)</div>
+                </div>
+
+                <button class="cl-btn-select-file" id="btn-trigger-file-pick">Selecionar arquivos</button>
+                <div id="main-upload-status" style="font-size: 0.75rem; text-align: center;"></div>
+
+                <div class="cl-ingest-subtext">Ou ingeste via</div>
+                <div class="cl-ingest-connectors">
+                  <div class="cl-connector-item" title="Não disponível nesta versão">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>
+                    URL da web (indisponível)
+                  </div>
+                  <div class="cl-connector-item" title="Não disponível nesta versão">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    Conectar repositório (indisponível)
+                  </div>
+                  <div class="cl-connector-item" id="btn-sample-docs" style="cursor: pointer; opacity: 1;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Exemplo de documentos
+                  </div>
+                </div>
+              </div>
+
+              <!-- Column 2: Fazer Pergunta & Resposta Dual -->
+              <div class="cl-center-column">
+                
+                <!-- Q&A Query Box -->
+                <div class="cl-qa-search-box">
+                  <div class="cl-panel-title">Fazer uma pergunta</div>
+                  <div class="cl-qa-input-row">
+                    <div class="cl-qa-input-wrap">
+                      <svg class="cl-qa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      <input type="text" class="cl-qa-input" id="qa-search-input" value="Qual é o projeto?">
+                    </div>
+                    <button class="cl-btn-qa-search" id="btn-submit-qa">Buscar</button>
+                  </div>
+                  <div class="cl-chips-row">
+                    <span class="cl-chip-label">Exemplos:</span>
+                    <button class="cl-chip" data-q="Qual é o projeto?">Qual é o projeto?</button>
+                    <button class="cl-chip" data-q="Quem são os autores?">Quem são os autores?</button>
+                    <button class="cl-chip" data-q="Quais documentos se relacionam?">Quais documentos se relacionam?</button>
+                    <button class="cl-chip" data-q="Por que não devemos misturar metadados declarados e derivados?">Por que não devemos misturar metadados declarados e derivados?</button>
+                  </div>
+                </div>
+
+                <!-- Dual Answer Cards Grid -->
+                <div class="cl-answers-grid">
+                  <!-- Left Card: Metadata-First Answer (Green) -->
+                  <div class="cl-answer-meta-card" id="card-answer-meta">
+                    <!-- Populated dynamically via qa_engine.js -->
+                  </div>
+
+                  <!-- Right Card: Selective Deepening Required (Gold) -->
+                  <div class="cl-answer-deep-card" id="card-answer-deep">
+                    <!-- Populated dynamically via qa_engine.js -->
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Column 3: Relações e Contexto & Proveniência -->
+              <div class="cl-right-column">
+                
+                <!-- Semantic Relations Graph -->
+                <div class="cl-graph-panel">
+                  <div class="cl-panel-title-row">
+                    <div class="cl-panel-title">Relações e contexto</div>
+                  </div>
+                  <div class="cl-graph-canvas-wrap" id="main-semantic-graph"></div>
+                  <div class="cl-graph-legend">
+                    <span class="cl-legend-item"><span class="cl-legend-dot cl-dot-doc"></span> Documento</span>
+                    <span class="cl-legend-item"><span class="cl-legend-dot cl-dot-concept"></span> Conceito</span>
+                    <span class="cl-legend-item"><span class="cl-legend-dot cl-dot-exp"></span> Experimento</span>
+                    <span class="cl-legend-item"><span class="cl-legend-dot cl-dot-rel"></span> Relacionado</span>
+                  </div>
+                </div>
+
+                <!-- Provenance Timeline -->
+                <div class="cl-timeline-panel">
+                  <div class="cl-panel-title-row">
+                    <div class="cl-panel-title">Linha do tempo (proveniência)</div>
+                    <a href="#" id="link-view-all-events" style="font-size: 0.72rem; color: var(--cl-blue); text-decoration: none;">Ver completa →</a>
+                  </div>
+                  <div class="cl-timeline-list" id="main-timeline-container"></div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- View: Document Corpus / Meus Documentos -->
+      <section class="view-section" id="view-corpus">
+        <div style="background: var(--cl-panel-0); border: 1px solid var(--cl-line); border-radius: var(--cl-radius-lg); padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h2 style="font-family: var(--font-display); font-size: 1.3rem;">Documentos no Corpus</h2>
+            <button class="btn btn-primary" onclick="document.getElementById('btn-trigger-file-pick').click()">+ Ingerir Documento</button>
+          </div>
+          <div class="documents-grid" id="docs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;"></div>
+        </div>
+      </section>
+
+      <!-- View: Search Full Route -->
+      <section class="view-section" id="view-search">
+        <div style="background: var(--cl-panel-0); border: 1px solid var(--cl-line); border-radius: var(--cl-radius-lg); padding: 1.5rem;">
+          <h2 style="font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1rem;">Busca & Roteamento Metadata-First</h2>
+          <div id="routing-box" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(56, 152, 255, 0.08); padding: 0.75rem; border-radius: var(--cl-radius-sm); margin-bottom: 1rem;">
+            <div id="routing-badge-container"></div>
+            <div id="routing-reason-text" style="font-size: 0.82rem; color: var(--cl-text-1);"></div>
+          </div>
+          <div id="search-results-container"></div>
+        </div>
+      </section>
+
+      <!-- View: Document Inspector (8 Tabs) -->
+      <section class="view-section" id="view-inspector">
+        <div id="inspector-content"></div>
+      </section>
+
+      <!-- View: Projects -->
+      <section class="view-section" id="view-projects">
+        <div id="projects-content"></div>
+      </section>
+
+      <!-- View: Relations -->
+      <section class="view-section" id="view-relations">
+        <div id="relations-content"></div>
+      </section>
+
+      <!-- View: Schemas -->
+      <section class="view-section" id="view-schemas">
+        <div id="schemas-content"></div>
+      </section>
+
+      <!-- View: Events / Audit -->
+      <section class="view-section" id="view-events">
+        <div id="events-content"></div>
+      </section>
+
+      <!-- Technical Base Footer -->
+      <footer class="cl-technical-footer">
+        <div class="cl-tech-left">
+          <span class="cl-tech-title">BASE TÉCNICA</span>
+          <div class="cl-tech-badges">
+            <div class="cl-tech-item"><span class="cl-tech-icon">C++</span> <div><span class="cl-tech-name">C++26</span> <span class="cl-tech-role">Processamento</span></div></div>
+            <div class="cl-tech-item"><span class="cl-tech-icon">SQL</span> <div><span class="cl-tech-name">SQLite / FTS5</span> <span class="cl-tech-role">Armazenamento e busca</span></div></div>
+            <div class="cl-tech-item"><span class="cl-tech-icon">API</span> <div><span class="cl-tech-name">HTTP JSON API</span> <span class="cl-tech-role">Integração</span></div></div>
+            <div class="cl-tech-item"><span class="cl-tech-icon">PDF</span> <div><span class="cl-tech-name">qpdf</span> <span class="cl-tech-role">Análise de PDF</span></div></div>
+            <div class="cl-tech-item"><span class="cl-tech-icon">SHA</span> <div><span class="cl-tech-name">SHA-256</span> <span class="cl-tech-role">Integridade</span></div></div>
+            <div class="cl-tech-item"><span class="cl-tech-icon">UI</span> <div><span class="cl-tech-name">Web UI</span> <span class="cl-tech-role">Interface moderna</span></div></div>
+          </div>
+        </div>
+
+        <div class="cl-tech-right">
+          <span>PESQUISA EM ANDAMENTO</span>
+          <span class="cl-tech-open-science"><span class="cl-status-dot"></span> CIÊNCIA ABERTA</span>
+          <span>✓ IMPACTO REAL</span>
+        </div>
+      </footer>
+
+    </main>
+
+    <!-- ====================================================================
+         3. Right Atmospheric Strip (~10-12%)
+         ==================================================================== -->
+    <aside class="cl-atmosphere-right">
+      <div>
+        <div class="cl-lighthouse-scene">
+          <svg class="cl-lighthouse-svg" viewBox="0 0 160 160" fill="none">
+            <!-- Stars -->
+            <circle cx="20" cy="25" r="0.8" fill="#fff" opacity="0.8"/>
+            <circle cx="60" cy="15" r="1.2" fill="#fff" opacity="0.9"/>
+            <circle cx="100" cy="30" r="0.7" fill="#fff" opacity="0.7"/>
+            <circle cx="130" cy="18" r="1" fill="#fff" opacity="0.85"/>
+            <!-- Coast Mountain Silhouette -->
+            <path d="M0 160 L0 120 Q50 110 90 95 Q130 80 160 50 L160 160 Z" fill="#030b14"/>
+            <!-- Lighthouse Structure at Top Right (140, 48) -->
+            <rect x="136" y="24" width="8" height="26" fill="#f4f7fb"/>
+            <polygon points="135 24 140 16 145 24" fill="#c7d4df"/>
+            <rect x="134" y="20" width="12" height="4" fill="#ffd67a" filter="drop-shadow(0 0 10px #ffd67a)"/>
+            <!-- Glowing Lighthouse Beam -->
+            <polygon points="140 22 0 10 0 75" fill="url(#beam-gradient)" opacity="0.65"/>
+            <defs>
+              <linearGradient id="beam-gradient" x1="100%" y1="20%" x2="0%" y2="50%">
+                <stop offset="0%" stop-color="#ffe699" stop-opacity="0.85"/>
+                <stop offset="60%" stop-color="#ffe699" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#ffe699" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
           </svg>
         </div>
-        <div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="brand-title">ContextLab</span>
-            <span class="brand-badge">C++26 Baseline</span>
-          </div>
+
+        <div class="cl-atmo-top-quote">
+          “Mais contexto.<br>Menos incerteza.<br>Conhecimento que se conecta.”
         </div>
-      </a>
 
-      <nav class="nav-links">
-        <button class="nav-btn active" data-view="corpus">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Corpus
-        </button>
-        <button class="nav-btn" data-view="projects">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Projetos
-        </button>
-        <button class="nav-btn" data-view="relations">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          Relações
-        </button>
-        <button class="nav-btn" data-view="schemas">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Schemas
-        </button>
-        <button class="nav-btn" data-view="events">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Auditoria
-        </button>
-      </nav>
+        <div class="cl-atmo-title">CONTEXTLAB</div>
 
-      <div class="header-actions">
-        <button class="btn btn-primary" id="btn-open-upload">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Ingerir Documento
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="app-main">
-
-    <!-- View: Corpus -->
-    <section class="view-section active" id="view-corpus">
-      <!-- Hero Banner -->
-      <div class="hero-banner">
-        <div class="hero-subtitle">Laboratório de Contexto Documental Computável</div>
-        <h1 class="hero-title">Contexto Declarado antes de Interpretação Textual</h1>
-        <p class="hero-desc">
-          Organização, linhagem e recuperação de artefatos de pesquisa estruturados a partir de metadados autoritativos. Análise de texto profundo sob demanda sem desperdício de CPU/Memória.
-        </p>
-      </div>
-
-      <!-- Live Corpus Stats -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Documentos no Corpus</div>
-          <div class="stat-value" id="stat-docs-count">1</div>
-          <div class="stat-note">Entidades lógicas indexadas</div>
+        <div class="cl-atmo-steps">
+          <div class="cl-atmo-step-pill">EXPLORAR</div>
+          <div class="cl-atmo-step-pill">RELACIONAR</div>
+          <div class="cl-atmo-step-pill">COMPREENDER</div>
+          <div class="cl-atmo-step-pill">VALIDAR</div>
+          <div class="cl-atmo-step-pill">AVANÇAR</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Projetos Ativos</div>
-          <div class="stat-value" id="stat-proj-count">1</div>
-          <div class="stat-note">Domínios de pesquisa</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Relações Mapeadas</div>
-          <div class="stat-value" id="stat-rel-count">5</div>
-          <div class="stat-note">Arestas semânticas no corpus</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Schemas de Metadados</div>
-          <div class="stat-value" id="stat-schema-count">1</div>
-          <div class="stat-note">JSON Schema Draft 2020-12</div>
+
+        <div class="cl-atmo-center-quote">
+          “Contexto<br>ilumina<br>descobertas.”
         </div>
       </div>
 
-      <!-- Search Bar -->
-      <div class="search-section">
-        <div class="search-bar-container">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.5rem; color: var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="search-input" class="search-input" placeholder="Buscar por identidade, proveniência, conceitos ou relações (ex: ContextLab, proveniência, por que...)">
-          <select id="search-mode" class="search-mode-select">
-            <option value="auto">Modo: Automático (Metadata-First)</option>
-            <option value="metadata">Forçar Metadados</option>
-            <option value="text">Forçar Texto (FTS5)</option>
-          </select>
+      <div>
+        <div class="cl-atmo-bottom-quote">
+          “Todo<br>documento<br>faz parte<br>de uma história<br>maior.”
         </div>
 
-        <!-- Routing Pill Indicator -->
-        <div id="routing-box" class="routing-pill-box" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div id="routing-badge-container"></div>
-            <span class="routing-reason" id="routing-reason-text"></span>
-          </div>
+        <div class="cl-atmo-steps" style="margin-top: 1rem; margin-bottom: 0;">
+          <div class="cl-atmo-step-pill">EXPLORAR</div>
+          <div class="cl-atmo-step-pill">RELACIONAR</div>
+          <div class="cl-atmo-step-pill">COMPREENDER</div>
+          <div class="cl-atmo-step-pill">VALIDAR</div>
+          <div class="cl-atmo-step-pill">AVANÇAR</div>
         </div>
-
-        <!-- Search Results List -->
-        <div id="search-results-container" style="margin-top: 1rem;"></div>
       </div>
+    </aside>
 
-      <!-- Documents Grid Title -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="font-family: var(--font-display); font-size: 1.25rem;">Documentos no Laboratório</h2>
-      </div>
-
-      <div class="documents-grid" id="docs-grid"></div>
-    </section>
-
-    <!-- View: Document Inspector (8 Tabs) -->
-    <section class="view-section" id="view-inspector">
-      <div id="inspector-content"></div>
-    </section>
-
-    <!-- View: Projects -->
-    <section class="view-section" id="view-projects">
-      <div id="projects-content"></div>
-    </section>
-
-    <!-- View: Relations -->
-    <section class="view-section" id="view-relations">
-      <div id="relations-content"></div>
-    </section>
-
-    <!-- View: Schemas -->
-    <section class="view-section" id="view-schemas">
-      <div id="schemas-content"></div>
-    </section>
-
-    <!-- View: Events / Audit -->
-    <section class="view-section" id="view-events">
-      <div id="events-content"></div>
-    </section>
-
-  </main>
-
-  <!-- Ingestion Upload Modal -->
-  <div class="modal-overlay" id="upload-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 style="font-family: var(--font-display); font-size: 1.15rem;">Ingerir Documento de Pesquisa</h3>
-        <button id="btn-close-upload" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
-          Formatos suportados: Markdown autodescritivo (<code>.md</code>), PDF com ou sem anexo (<code>.pdf</code>), JSON de metadados (<code>.json</code>), LaTeX (<code>.tex</code>) e Texto simples (<code>.txt</code>).
-        </p>
-        <div class="dropzone" id="dropzone">
-          <input type="file" id="file-input" style="display: none;" accept=".md,.pdf,.json,.tex,.txt">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-primary); margin-bottom: 0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Arraste e solte o arquivo aqui</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">ou clique para navegar no sistema de arquivos</div>
-        </div>
-        <div id="upload-status" style="margin-top: 1rem; font-size: 0.85rem; text-align: center;"></div>
-      </div>
-    </div>
   </div>
 
+  <!-- ====================================================================
+       Modals for Full CRUD Functionality
+       ==================================================================== -->
   <!-- Edit Document Modal -->
   <div class="modal-overlay" id="edit-doc-modal">
-    <div class="modal-card" style="max-width: 600px;">
+    <div class="modal-card">
       <div class="modal-header">
-        <h3 style="font-family: var(--font-display); font-size: 1.15rem;">Editar Documento</h3>
-        <button id="btn-close-edit-doc" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+        <h3>Editar Documento</h3>
+        <button id="btn-close-edit-doc" style="background: transparent; border: none; color: var(--cl-text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
       </div>
       <div class="modal-body">
         <form id="form-edit-doc">
@@ -212,8 +564,7 @@
           <div class="form-row">
             <div class="form-group flex-1">
               <label class="form-label" for="edit-doc-project">Projeto Primário</label>
-              <input type="text" id="edit-doc-project" class="form-input" list="project-suggestions">
-              <datalist id="project-suggestions"></datalist>
+              <input type="text" id="edit-doc-project" class="form-input">
             </div>
             <div class="form-group flex-1">
               <label class="form-label" for="edit-doc-type">Tipo de Documento</label>
@@ -241,7 +592,7 @@
               </select>
             </div>
           </div>
-          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
             <button type="button" class="btn btn-secondary" id="btn-cancel-edit-doc">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar Alterações</button>
           </div>
@@ -250,33 +601,33 @@
     </div>
   </div>
 
-  <!-- Relation Modal (Create / Edit) -->
+  <!-- Relation Modal -->
   <div class="modal-overlay" id="relation-modal">
     <div class="modal-card" style="max-width: 500px;">
       <div class="modal-header">
-        <h3 id="relation-modal-title" style="font-family: var(--font-display); font-size: 1.15rem;">Nova Relação Triádica</h3>
-        <button id="btn-close-relation" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+        <h3 id="relation-modal-title">Nova Relação Triádica</h3>
+        <button id="btn-close-relation" style="background: transparent; border: none; color: var(--cl-text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
       </div>
       <div class="modal-body">
         <form id="form-relation">
           <input type="hidden" id="rel-id" value="0">
           <div class="form-group">
             <label class="form-label" for="rel-document-id">Documento Vinculado</label>
-            <input type="text" id="rel-document-id" class="form-input" placeholder="ID do documento (ex: CONTEXTLAB-BOOTSTRAP-001)">
+            <input type="text" id="rel-document-id" class="form-input" placeholder="ID do documento">
           </div>
           <div class="form-group">
             <label class="form-label" for="rel-subject">Sujeito</label>
-            <input type="text" id="rel-subject" class="form-input" required placeholder="ex: Documento A ou Conceito X">
+            <input type="text" id="rel-subject" class="form-input" required>
           </div>
           <div class="form-group">
-            <label class="form-label" for="rel-predicate">Predicado / Relação</label>
-            <input type="text" id="rel-predicate" class="form-input" required placeholder="ex: references, contributes_to, origin_of, models">
+            <label class="form-label" for="rel-predicate">Predicado</label>
+            <input type="text" id="rel-predicate" class="form-input" required placeholder="isPartOf, concerns, validates...">
           </div>
           <div class="form-group">
             <label class="form-label" for="rel-object">Objeto</label>
-            <input type="text" id="rel-object" class="form-input" required placeholder="ex: SisterEcosystem ou Arquitetura Y">
+            <input type="text" id="rel-object" class="form-input" required>
           </div>
-          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
             <button type="button" class="btn btn-secondary" id="btn-cancel-relation">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar Relação</button>
           </div>
@@ -285,28 +636,28 @@
     </div>
   </div>
 
-  <!-- Project Modal (Create / Edit) -->
+  <!-- Project Modal -->
   <div class="modal-overlay" id="project-modal">
-    <div class="modal-card" style="max-width: 550px;">
+    <div class="modal-card" style="max-width: 520px;">
       <div class="modal-header">
-        <h3 id="project-modal-title" style="font-family: var(--font-display); font-size: 1.15rem;">Novo Projeto</h3>
-        <button id="btn-close-project" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+        <h3 id="project-modal-title">Novo Projeto</h3>
+        <button id="btn-close-project" style="background: transparent; border: none; color: var(--cl-text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
       </div>
       <div class="modal-body">
         <form id="form-project">
           <div class="form-row">
             <div class="form-group flex-1">
               <label class="form-label" for="proj-id">ID do Projeto</label>
-              <input type="text" id="proj-id" class="form-input" required placeholder="ex: Projeto-Alfa">
+              <input type="text" id="proj-id" class="form-input" required>
             </div>
             <div class="form-group flex-1">
-              <label class="form-label" for="proj-name">Nome de Exibição</label>
-              <input type="text" id="proj-name" class="form-input" required placeholder="ex: Projeto Alfa de Pesquisa">
+              <label class="form-label" for="proj-name">Nome</label>
+              <input type="text" id="proj-name" class="form-input" required>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group flex-1">
-              <label class="form-label" for="proj-kind">Tipo / Categoria</label>
+              <label class="form-label" for="proj-kind">Tipo</label>
               <input type="text" id="proj-kind" class="form-input" value="research_project">
             </div>
             <div class="form-group flex-1">
@@ -315,23 +666,14 @@
                 <option value="active">active</option>
                 <option value="exploratory">exploratory</option>
                 <option value="consolidated">consolidated</option>
-                <option value="archived">archived</option>
               </select>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="proj-domains">Domínios de Pesquisa (separados por vírgula)</label>
-            <input type="text" id="proj-domains" class="form-input" placeholder="Engenharia de Software, Resiliência, DDD">
+            <label class="form-label" for="proj-domains">Domínios de Pesquisa</label>
+            <input type="text" id="proj-domains" class="form-input" placeholder="resilience, ecology, software">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="proj-study">Objeto de Estudo</label>
-            <input type="text" id="proj-study" class="form-input" placeholder="ex: Dinâmica de sistemas autônomos">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="proj-question">Questão Central de Pesquisa</label>
-            <input type="text" id="proj-question" class="form-input" placeholder="ex: Como garantir integridade epistêmica sem acoplamento?">
-          </div>
-          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
             <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar Projeto</button>
           </div>
@@ -342,12 +684,10 @@
 
   <!-- Deletion Confirmation Modal -->
   <div class="modal-overlay" id="delete-confirm-modal">
-    <div class="modal-card" style="max-width: 420px; text-align: center;">
-      <div style="font-size: 2.5rem; color: var(--accent-rose); margin-bottom: 0.5rem;">⚠️</div>
-      <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.75rem;">Confirmar Exclusão</h3>
-      <p id="delete-confirm-message" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
-        Tem certeza que deseja excluir este registro?
-      </p>
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+      <div style="font-size: 2.2rem; color: var(--cl-rose); margin-bottom: 0.5rem;">⚠️</div>
+      <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 0.5rem;">Confirmar Exclusão</h3>
+      <p id="delete-confirm-message" style="color: var(--cl-text-1); font-size: 0.85rem; margin-bottom: 1.25rem;"></p>
       <div style="display: flex; justify-content: center; gap: 0.75rem;">
         <button type="button" class="btn btn-secondary" id="btn-cancel-delete">Cancelar</button>
         <button type="button" class="btn btn-rose" id="btn-confirm-delete">Excluir Registro</button>

@@ -1,0 +1,314 @@
+/* ==========================================================================
+   ContextLab — Components & Modals (WEB-EXPERIENCE-001)
+   ========================================================================== */
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--cl-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--cl-transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--cl-blue) 0%, #2075d9 100%);
+  color: #fff;
+  border-color: rgba(56, 152, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(56, 152, 255, 0.25);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #4da4ff 0%, var(--cl-blue) 100%);
+  box-shadow: 0 6px 16px rgba(56, 152, 255, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(130, 183, 224, 0.08);
+  color: var(--cl-text-1);
+  border-color: var(--cl-line);
+}
+.btn-secondary:hover {
+  background: rgba(130, 183, 224, 0.16);
+  color: var(--cl-text-0);
+  border-color: var(--cl-line-strong);
+}
+
+.btn-rose {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+  border-color: rgba(244, 63, 94, 0.35);
+}
+.btn-rose:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: #fff;
+  border-color: var(--cl-rose);
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.3);
+}
+
+.btn-cyan {
+  background: rgba(54, 199, 255, 0.15);
+  color: #8be4ff;
+  border-color: rgba(54, 199, 255, 0.35);
+}
+.btn-cyan:hover {
+  background: rgba(54, 199, 255, 0.25);
+  color: #fff;
+  border-color: var(--cl-cyan);
+  box-shadow: 0 0 14px rgba(54, 199, 255, 0.3);
+}
+
+.btn-sm {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+/* ==========================================================================
+   Authority & Status Badges
+   ========================================================================== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border-radius: var(--cl-radius-xs);
+  border: 1px solid transparent;
+}
+
+.tag-authority-declared, .tag-declared {
+  background: rgba(40, 222, 160, 0.12);
+  color: var(--cl-green);
+  border-color: rgba(40, 222, 160, 0.3);
+}
+
+.tag-authority-derived, .tag-derived {
+  background: rgba(56, 152, 255, 0.12);
+  color: var(--cl-blue);
+  border-color: rgba(56, 152, 255, 0.3);
+}
+
+.tag-authority-external, .tag-external {
+  background: rgba(233, 179, 72, 0.12);
+  color: var(--cl-gold);
+  border-color: rgba(233, 179, 72, 0.3);
+}
+
+.tag-project {
+  background: rgba(123, 117, 255, 0.12);
+  color: #a5a1ff;
+  border-color: rgba(123, 117, 255, 0.3);
+}
+
+.tag-status {
+  background: rgba(130, 183, 224, 0.08);
+  color: var(--cl-text-1);
+  border-color: var(--cl-line);
+}
+
+/* ==========================================================================
+   Modal Overlays
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(1, 6, 12, 0.85);
+  backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--cl-panel-0);
+  border: 1px solid var(--cl-line-strong);
+  border-radius: var(--cl-radius-lg);
+  box-shadow: var(--cl-shadow-window);
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--cl-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--cl-text-0);
+}
+
+.modal-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.flex-1 { flex: 1; }
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cl-text-1);
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(3, 14, 25, 0.85);
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-sm);
+  padding: 0.5rem 0.75rem;
+  color: var(--cl-text-0);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  outline: none;
+  transition: all var(--cl-transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--cl-blue);
+  box-shadow: 0 0 12px rgba(56, 152, 255, 0.25);
+}
+
+/* ==========================================================================
+   Multi-View Sections (Corpus, Inspector, Projects, Relations, Schemas, Events)
+   ========================================================================== */
+.view-section {
+  display: none;
+}
+
+.view-section.active {
+  display: block;
+}
+
+.code-block {
+  background: rgba(2, 10, 18, 0.9);
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-sm);
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #8be4ff;
+  overflow-x: auto;
+}
+
+.kv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+
+.kv-table th, .kv-table td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--cl-line-subtle);
+  text-align: left;
+}
+
+.kv-table th {
+  color: var(--cl-text-2);
+  font-weight: 600;
+  width: 32%;
+}
+
+.kv-table td {
+  color: var(--cl-text-0);
+}
+
+/* Inspector Tabs */
+.inspector-container {
+  background: var(--cl-panel-0);
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-lg);
+  padding: 1.25rem;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--cl-line);
+}
+
+.inspector-tabs {
+  display: flex;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--cl-line);
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.inspector-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cl-text-2);
+  cursor: pointer;
+  transition: all var(--cl-transition-fast);
+  white-space: nowrap;
+}
+
+.inspector-tab:hover {
+  color: var(--cl-text-0);
+}
+
+.inspector-tab.active {
+  color: var(--cl-blue);
+  border-bottom-color: var(--cl-blue);
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}

@@ -1,0 +1,79 @@
+/* ==========================================================================
+   ContextLab — Design Tokens (WEB-EXPERIENCE-001)
+   ========================================================================== */
+
+:root {
+  /* Background Palette (Deep Obsidian & Navy) */
+  --cl-bg-0: #010810;
+  --cl-bg-1: #03111e;
+  --cl-bg-2: #061320;
+  --cl-bg-app: #051424;
+
+  /* Panels & Surfaces */
+  --cl-panel-0: rgba(7, 23, 39, 0.94);
+  --cl-panel-1: rgba(10, 29, 47, 0.94);
+  --cl-panel-2: rgba(12, 37, 59, 0.90);
+  --cl-panel-glass: rgba(8, 24, 42, 0.75);
+  --cl-panel-card: rgba(6, 21, 37, 0.88);
+  --cl-panel-hover: rgba(16, 45, 72, 0.7);
+
+  /* Lines & Borders */
+  --cl-line: rgba(130, 183, 224, 0.16);
+  --cl-line-strong: rgba(130, 183, 224, 0.30);
+  --cl-line-subtle: rgba(130, 183, 224, 0.08);
+
+  /* Typography Colors */
+  --cl-text-0: #f4f7fb;
+  --cl-text-1: #c7d4df;
+  --cl-text-2: #8296a8;
+  --cl-text-muted: #566c7f;
+
+  /* Accent Lights & Semantic Colors */
+  --cl-blue: #3898ff;
+  --cl-cyan: #36c7ff;
+  --cl-green: #28dea0;
+  --cl-gold: #e9b348;
+  --cl-violet: #7b75ff;
+  --cl-rose: #f43f5e;
+
+  /* Accent Translucencies */
+  --cl-green-bg: rgba(40, 222, 160, 0.08);
+  --cl-green-border: rgba(40, 222, 160, 0.35);
+  --cl-blue-bg: rgba(56, 152, 255, 0.08);
+  --cl-blue-border: rgba(56, 152, 255, 0.35);
+  --cl-gold-bg: rgba(233, 179, 72, 0.08);
+  --cl-gold-border: rgba(233, 179, 72, 0.35);
+  --cl-violet-bg: rgba(123, 117, 255, 0.08);
+  --cl-violet-border: rgba(123, 117, 255, 0.35);
+
+  /* Typography Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-serif: 'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Radius */
+  --cl-radius-xs: 4px;
+  --cl-radius-sm: 7px;
+  --cl-radius-md: 11px;
+  --cl-radius-lg: 16px;
+  --cl-radius-xl: 22px;
+  --cl-radius-pill: 9999px;
+
+  /* Shadows */
+  --cl-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.3);
+  --cl-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --cl-shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.6);
+  --cl-shadow-window: 0 25px 70px -10px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 152, 255, 0.06);
+
+  /* Localized Glows */
+  --cl-glow-blue: 0 0 28px rgba(56, 152, 255, 0.22);
+  --cl-glow-cyan: 0 0 28px rgba(54, 199, 255, 0.22);
+  --cl-glow-green: 0 0 28px rgba(40, 222, 160, 0.22);
+  --cl-glow-gold: 0 0 28px rgba(233, 179, 72, 0.22);
+  --cl-glow-violet: 0 0 28px rgba(123, 117, 255, 0.22);
+
+  /* Transitions */
+  --cl-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --cl-transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}

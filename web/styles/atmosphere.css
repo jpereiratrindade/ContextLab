@@ -1,0 +1,263 @@
+/* ==========================================================================
+   ContextLab — Conceptual Atmosphere & Nodes (WEB-EXPERIENCE-001)
+   ========================================================================== */
+
+/* ==========================================================================
+   Top Conceptual Tier
+   ========================================================================== */
+.cl-conceptual-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 1.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.cl-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.cl-header-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.cl-header-logo-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 16px rgba(56, 152, 255, 0.45));
+}
+
+.cl-header-titles h1 {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--cl-text-0);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.cl-header-titles p {
+  font-size: 0.82rem;
+  color: var(--cl-text-1);
+  margin-top: 0.2rem;
+  font-weight: 400;
+}
+
+.cl-header-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--cl-text-1);
+  line-height: 1.3;
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--cl-line);
+}
+
+/* ==========================================================================
+   Three Glowing Celestial Spheres (Ingestão, Exploração, Decisão)
+   ========================================================================== */
+.cl-spheres-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.75rem;
+  position: relative;
+}
+
+.cl-spheres-svg-connections {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cl-sphere-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  transition: transform var(--cl-transition-normal), box-shadow var(--cl-transition-normal);
+  cursor: pointer;
+}
+
+.cl-sphere-node:hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+/* Sphere 1: Ingestão (Green / Cyan) */
+.cl-sphere-ingest {
+  background: radial-gradient(circle at 35% 35%, rgba(40, 222, 160, 0.45) 0%, rgba(10, 45, 45, 0.85) 55%, rgba(2, 18, 20, 0.98) 100%);
+  border: 1.5px solid rgba(40, 222, 160, 0.6);
+  box-shadow: 0 0 35px rgba(40, 222, 160, 0.3), inset 0 0 20px rgba(40, 222, 160, 0.25);
+}
+
+.cl-sphere-ingest:hover {
+  box-shadow: 0 0 50px rgba(40, 222, 160, 0.5), inset 0 0 30px rgba(40, 222, 160, 0.4);
+}
+
+/* Sphere 2: Exploração (Blue) */
+.cl-sphere-explore {
+  background: radial-gradient(circle at 35% 35%, rgba(56, 152, 255, 0.55) 0%, rgba(15, 35, 75, 0.85) 55%, rgba(3, 15, 35, 0.98) 100%);
+  border: 1.5px solid rgba(56, 152, 255, 0.7);
+  box-shadow: 0 0 40px rgba(56, 152, 255, 0.35), inset 0 0 25px rgba(56, 152, 255, 0.3);
+}
+
+.cl-sphere-explore:hover {
+  box-shadow: 0 0 55px rgba(56, 152, 255, 0.55), inset 0 0 35px rgba(56, 152, 255, 0.45);
+}
+
+/* Sphere 3: Decisão (Amber / Gold) */
+.cl-sphere-decision {
+  background: radial-gradient(circle at 35% 35%, rgba(233, 179, 72, 0.45) 0%, rgba(55, 40, 15, 0.85) 55%, rgba(25, 18, 5, 0.98) 100%);
+  border: 1.5px solid rgba(233, 179, 72, 0.6);
+  box-shadow: 0 0 35px rgba(233, 179, 72, 0.3), inset 0 0 20px rgba(233, 179, 72, 0.25);
+}
+
+.cl-sphere-decision:hover {
+  box-shadow: 0 0 50px rgba(233, 179, 72, 0.5), inset 0 0 30px rgba(233, 179, 72, 0.4);
+}
+
+.cl-sphere-content {
+  text-align: center;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-sphere-icon {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 0.25rem;
+}
+
+.cl-sphere-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+
+.cl-sphere-ingest .cl-sphere-title { color: #5ef3c5; }
+.cl-sphere-explore .cl-sphere-title { color: #82c3ff; }
+.cl-sphere-decision .cl-sphere-title { color: #ffd67a; }
+
+.cl-sphere-desc {
+  font-size: 0.62rem;
+  color: var(--cl-text-1);
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   Right Atmospheric Strip (Farol, Citações, Sequência)
+   ========================================================================== */
+.cl-atmosphere-right {
+  background: linear-gradient(180deg, rgba(2, 10, 20, 0.98) 0%, rgba(1, 6, 12, 1) 100%);
+  border-left: 1px solid var(--cl-line);
+  padding: 1.5rem 1rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 30;
+  overflow: hidden;
+}
+
+/* Lighthouse Art Component */
+.cl-lighthouse-scene {
+  position: relative;
+  width: 100%;
+  height: 170px;
+  margin-bottom: 1rem;
+  border-radius: var(--cl-radius-md);
+  overflow: hidden;
+  background: radial-gradient(circle at 80% 25%, rgba(255, 230, 160, 0.35) 0%, rgba(20, 50, 90, 0.3) 40%, rgba(1, 10, 22, 0.8) 100%);
+  border: 1px solid var(--cl-line-subtle);
+}
+
+.cl-lighthouse-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cl-atmo-top-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--cl-text-1);
+  line-height: 1.35;
+  margin-bottom: 0.85rem;
+}
+
+.cl-atmo-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--cl-text-2);
+  letter-spacing: 0.12em;
+  margin-bottom: 0.6rem;
+}
+
+.cl-atmo-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+}
+
+.cl-atmo-step-pill {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--cl-text-2);
+  padding: 0.25rem 0.5rem;
+  background: rgba(130, 183, 224, 0.05);
+  border: 1px solid rgba(130, 183, 224, 0.12);
+  border-radius: var(--cl-radius-xs);
+  transition: all var(--cl-transition-fast);
+}
+
+.cl-atmo-step-pill:hover {
+  background: rgba(56, 152, 255, 0.15);
+  color: var(--cl-blue);
+  border-color: rgba(56, 152, 255, 0.3);
+}
+
+.cl-atmo-center-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--cl-text-0);
+  line-height: 1.3;
+  margin: 1.5rem 0;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.cl-atmo-bottom-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--cl-text-2);
+  line-height: 1.4;
+  margin-top: auto;
+  padding-top: 1rem;
+}

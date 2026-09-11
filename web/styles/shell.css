@@ -1,0 +1,283 @@
+/* ==========================================================================
+   ContextLab — Shell & Macro Layout (WEB-EXPERIENCE-001)
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--cl-bg-0);
+  background-image: 
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(13, 42, 70, 0.45) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 85% 20%, rgba(30, 80, 130, 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, var(--cl-bg-0) 0%, var(--cl-bg-1) 100%);
+  color: var(--cl-text-0);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Macro Layout Container: Sidebar (10%) | Central Area (78%) | Atmosphere Right (12%) */
+.app-container {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 210px;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ==========================================================================
+   Left Sidebar Navigation
+   ========================================================================== */
+.cl-sidebar {
+  background: linear-gradient(180deg, rgba(3, 17, 30, 0.95) 0%, rgba(1, 8, 16, 0.98) 100%);
+  border-right: 1px solid var(--cl-line);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem 0.85rem 1.25rem 0.85rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+}
+
+.cl-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem 1.25rem 0.65rem;
+  text-decoration: none;
+}
+
+.cl-brand-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.cl-brand-name {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--cl-text-0);
+  letter-spacing: 0.02em;
+}
+
+.cl-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin-top: 0.5rem;
+  flex: 1;
+}
+
+.cl-nav-item {
+  width: 100%;
+}
+
+.cl-nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--cl-radius-sm);
+  color: var(--cl-text-2);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--cl-transition-fast);
+  position: relative;
+  text-align: left;
+}
+
+.cl-nav-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--cl-text-2);
+  transition: color var(--cl-transition-fast);
+}
+
+.cl-nav-btn:hover {
+  background: rgba(56, 152, 255, 0.06);
+  color: var(--cl-text-0);
+}
+
+.cl-nav-btn:hover svg {
+  color: var(--cl-cyan);
+}
+
+.cl-nav-btn.active {
+  background: linear-gradient(90deg, rgba(56, 152, 255, 0.16) 0%, rgba(56, 152, 255, 0.03) 100%);
+  color: var(--cl-text-0);
+  font-weight: 600;
+}
+
+.cl-nav-btn.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  background: var(--cl-blue);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 10px var(--cl-blue);
+}
+
+.cl-nav-btn.active svg {
+  color: var(--cl-blue);
+}
+
+.cl-sidebar-footer {
+  padding-top: 1rem;
+  border-top: 1px solid var(--cl-line-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cl-sidebar-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--cl-text-2);
+  line-height: 1.35;
+}
+
+.cl-sidebar-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--cl-text-muted);
+}
+
+.cl-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--cl-green);
+  font-weight: 600;
+}
+
+.cl-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cl-green);
+  box-shadow: 0 0 8px var(--cl-green);
+}
+
+.cl-sidebar-subtext {
+  font-size: 0.7rem;
+  color: var(--cl-text-muted);
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   Central Workspace Region
+   ========================================================================== */
+.cl-main-region {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem 1.25rem 1.5rem;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Technical Footer (Base Técnica)
+   ========================================================================== */
+.cl-technical-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--cl-line-subtle);
+  font-size: 0.75rem;
+}
+
+.cl-tech-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.cl-tech-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--cl-text-2);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cl-tech-badges {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cl-tech-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--cl-text-1);
+}
+
+.cl-tech-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--cl-radius-xs);
+  background: rgba(56, 152, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--cl-blue);
+}
+
+.cl-tech-name {
+  font-weight: 600;
+  color: var(--cl-text-0);
+}
+
+.cl-tech-role {
+  color: var(--cl-text-2);
+  font-size: 0.7rem;
+}
+
+.cl-tech-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.cl-tech-open-science {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cl-green);
+}
