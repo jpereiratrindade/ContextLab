@@ -4,8 +4,11 @@
 
 class AppState {
   constructor() {
-    this.currentView = 'corpus'; // 'corpus', 'relations', 'schemas', 'events', 'inspector'
+    this.currentView = 'inicio'; // 'inicio', 'corpus', 'search', 'projects', 'relations', 'events', 'schemas', 'inspector'
     this.selectedDocId = null;
+    this.currentUser = null;
+    this.topicGraphData = null;
+    this.selectedTopic = null;
     this.documents = [];
     this.projects = [];
     this.relations = [];
@@ -31,6 +34,21 @@ class AppState {
     }
   }
 
+  setUser(user) {
+    this.currentUser = user;
+    this.notify();
+  }
+
+  setTopicGraphData(data) {
+    this.topicGraphData = data;
+    this.notify();
+  }
+
+  setSelectedTopic(topic) {
+    this.selectedTopic = topic;
+    this.notify();
+  }
+
   setView(view, docId = null) {
     this.currentView = view;
     if (docId !== null) {
@@ -39,13 +57,15 @@ class AppState {
     this.notify();
   }
 
-  setData({ documents, projects, relations, schemas, events, systemInfo }) {
-    if (documents) this.documents = documents;
-    if (projects) this.projects = projects;
-    if (relations) this.relations = relations;
-    if (schemas) this.schemas = schemas;
-    if (events) this.events = events;
-    if (systemInfo) this.systemInfo = systemInfo;
+  setData({ documents, projects, relations, schemas, events, systemInfo, currentUser, topicGraphData }) {
+    if (documents !== undefined) this.documents = documents;
+    if (projects !== undefined) this.projects = projects;
+    if (relations !== undefined) this.relations = relations;
+    if (schemas !== undefined) this.schemas = schemas;
+    if (events !== undefined) this.events = events;
+    if (systemInfo !== undefined) this.systemInfo = systemInfo;
+    if (currentUser !== undefined) this.currentUser = currentUser;
+    if (topicGraphData !== undefined) this.topicGraphData = topicGraphData;
     this.notify();
   }
 

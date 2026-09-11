@@ -3,6 +3,12 @@
 #include "contextlab/core/Logger.hpp"
 #include <chrono>
 #include <format>
+#include <random>
+#include <regex>
+#include <map>
+#include <vector>
+#include <optional>
+#include <algorithm>
 
 namespace contextlab::application {
 
@@ -135,17 +141,144 @@ core::Result<ingest::IngestionReport> ContextLabService::ingestContent(std::stri
     return pipeline_->ingestContent(content, filename, media_type);
 }
 
-core::Result<domain::Document> ContextLabService::getDocument(const std::string& id) {
+static std::string deriveNameFromEmail(const std::string& email) {
+    auto at_pos = email.find('@');
+    std::string prefix = (at_pos != std::string::npos) ? email.substr(0, at_pos) : email;
+    std::string result;
+    bool cap_next = true;
+    for (char c : prefix) {
+        if (c == '.' || c == '_' || c == '-') {
+            result += ' ';
+            cap_next = true;
+        } else {
+            result += cap_next ? static_cast<char>(std::toupper(c)) : c;
+            cap_next = false;
+        }
+    }
+    return result.empty() ? email : result;
+}
+
+bool ContextLabService::isDocumentAccessible(const domain::Document& doc, const std::optional<domain::User>& user) const {
+    std::string vis = doc.visibility;
+    if (vis.empty() || vis == "public") {
+        return true;
+    }
+    if (!user.has_value()) {
+        return false;
+    }
+    if (user->role == "admin") {
+        return true;
+    }
+    if (!doc.owner.empty() && doc.owner == user->email) {
+        return true;
+    }
+    if (vis == "internal_embrapa") {
+        return true;
+    }
+    if (vis == "team") {
+        for (const auto& t : doc.allowed_teams) {
+            if (t == user->unit) return true;
+        }
+        return false;
+    }
+    if (vis == "private") {
+        for (const auto& u : doc.allowed_users) {
+            if (u == user->email) return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+core::Result<std::string> ContextLabService::requestOtp(const std::string& email) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+
+    std::regex embrapa_pattern(R"(^[a-zA-Z0-9._%+-]+@embrapa\.br$)", std::regex_constants::icase);
+    if (!std::regex_match(email, embrapa_pattern)) {
+        return core::makeError(core::ErrorCode::INVALID_ARGUMENT, "Apenas e-mails corporativos @embrapa.br são autorizados para login.");
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(100000, 999999);
+    std::string otp = std::to_string(dist(gen));
+
+    auto save_res = repo_->saveOtp(email, otp, 10);
+    if (!save_res) return std::unexpected(save_res.error());
+
+    core::Logger::instance().info("AUTH_OTP", std::format("Código de verificação OTP gerado para {}: {}", email, otp));
+
+    return core::makeOk(std::move(otp));
+}
+
+core::Result<std::pair<domain::User, std::string>> ContextLabService::verifyOtp(const std::string& email, const std::string& otp_code) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+
+    auto verify_res = repo_->verifyOtp(email, otp_code);
+    if (!verify_res) return std::unexpected(verify_res.error());
+    if (!*verify_res) {
+        return core::makeError(core::ErrorCode::PERMISSION_DENIED, "Código de verificação OTP inválido ou expirado.");
+    }
+
+    const auto now = std::chrono::system_clock::now();
+    std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+
+    auto user_opt = repo_->getUser(email).value_or(std::nullopt);
+    domain::User user;
+    if (user_opt.has_value()) {
+        user = *user_opt;
+        user.last_login_at = now_str;
+    } else {
+        user = domain::User{
+            .email = email,
+            .name = deriveNameFromEmail(email),
+            .role = "researcher",
+            .unit = "Embrapa",
+            .created_at = now_str,
+            .last_login_at = now_str
+        };
+    }
+    (void)repo_->saveUser(user);
+
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dist;
+    std::string token = std::format("cl_sess_{:x}{:x}", dist(gen), dist(gen));
+
+    auto sess_res = repo_->createSession(email, token, 24);
+    if (!sess_res) return std::unexpected(sess_res.error());
+
+    core::Logger::instance().info("AUTH_LOGIN_SUCCESS", std::format("Pesquisador autenticado: {} ({})", user.name, user.email));
+
+    return core::makeOk(std::make_pair(std::move(user), std::move(token)));
+}
+
+core::Result<std::optional<domain::User>> ContextLabService::authenticateToken(const std::string& token) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    if (token.empty()) return core::makeOk(std::optional<domain::User>{std::nullopt});
+    return repo_->getSessionUser(token);
+}
+
+core::Result<void> ContextLabService::logout(const std::string& token) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->deleteSession(token);
+}
+
+core::Result<domain::Document> ContextLabService::getDocument(const std::string& id, const std::optional<domain::User>& user) {
     if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
     auto res = repo_->getDocument(id);
     if (!res) return std::unexpected(res.error());
     if (!res->has_value()) {
         return core::makeError(core::ErrorCode::FILE_NOT_FOUND, "Document not found: " + id);
     }
-    return core::makeOk(std::move(**res));
+    const auto& doc = **res;
+    if (!isDocumentAccessible(doc, user)) {
+        return core::makeError(core::ErrorCode::PERMISSION_DENIED, "Acesso restrito ao documento: " + id);
+    }
+    return core::makeOk(std::move(doc));
 }
 
-core::Result<nlohmann::json> ContextLabService::getDocumentFull(const std::string& id) {
+core::Result<nlohmann::json> ContextLabService::getDocumentFull(const std::string& id, const std::optional<domain::User>& user) {
     if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
     auto doc_res = repo_->getDocument(id);
     if (!doc_res) return std::unexpected(doc_res.error());
@@ -153,6 +286,9 @@ core::Result<nlohmann::json> ContextLabService::getDocumentFull(const std::strin
         return core::makeError(core::ErrorCode::FILE_NOT_FOUND, "Document not found: " + id);
     }
     const auto& doc = **doc_res;
+    if (!isDocumentAccessible(doc, user)) {
+        return core::makeError(core::ErrorCode::PERMISSION_DENIED, "Acesso restrito ao documento: " + id);
+    }
 
     auto artifacts = repo_->getArtifactsForDocument(id).value_or(std::vector<domain::Artifact>{});
     auto envelopes = repo_->getMetadataEnvelopes(id).value_or(std::vector<domain::MetadataEnvelope>{});
@@ -187,9 +323,18 @@ core::Result<nlohmann::json> ContextLabService::getDocumentFull(const std::strin
     return core::makeOk(std::move(full));
 }
 
-core::Result<std::vector<domain::Document>> ContextLabService::listDocuments() {
+core::Result<std::vector<domain::Document>> ContextLabService::listDocuments(const std::optional<domain::User>& user) {
     if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
-    return repo_->getAllDocuments();
+    auto all_docs_res = repo_->getAllDocuments();
+    if (!all_docs_res) return all_docs_res;
+
+    std::vector<domain::Document> accessible_docs;
+    for (const auto& doc : *all_docs_res) {
+        if (isDocumentAccessible(doc, user)) {
+            accessible_docs.push_back(doc);
+        }
+    }
+    return core::makeOk(std::move(accessible_docs));
 }
 
 core::Result<void> ContextLabService::updateDocument(const domain::Document& doc) {
@@ -257,9 +402,107 @@ core::Result<std::vector<domain::SchemaDefinition>> ContextLabService::listSchem
     return core::makeOk(schemas_->listSchemas());
 }
 
-core::Result<retrieval::SearchResponse> ContextLabService::search(const std::string& query, const std::string& mode) {
+core::Result<retrieval::SearchResponse> ContextLabService::search(const std::string& query, const std::string& mode, const std::optional<domain::User>& user) {
     if (!search_engine_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
-    return search_engine_->search(query, mode);
+    auto res = search_engine_->search(query, mode);
+    if (!res) return res;
+
+    // Filter results according to user access permissions
+    std::vector<retrieval::SearchResultItem> filtered_items;
+    for (const auto& item : res->results) {
+        auto doc_res = repo_->getDocument(item.document_id);
+        if (doc_res && doc_res->has_value()) {
+            if (isDocumentAccessible(**doc_res, user)) {
+                filtered_items.push_back(item);
+            }
+        } else {
+            filtered_items.push_back(item);
+        }
+    }
+    res->results = std::move(filtered_items);
+    return res;
+}
+
+core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std::optional<domain::User>& user) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+
+    domain::TopicGraphData data;
+
+    struct SeedNode {
+        std::string id;
+        std::string label;
+        std::string category;
+        int count;
+        double weight;
+    };
+
+    std::vector<SeedNode> seeds = {
+        {"ilpf", "ILPF", "Sistemas Produtivos", 14, 1.8},
+        {"balanco-carbono", "Balanço de Carbono", "Clima & Sustentabilidade", 11, 1.7},
+        {"bioma-pampa", "Bioma Pampa", "Biomas & Ecologia", 8, 1.4},
+        {"pastagens-precisao", "Pastagens de Precisão", "Agro Digital", 10, 1.6},
+        {"sensoriamento-remoto", "Sensoriamento Remoto", "Agro Digital", 9, 1.5},
+        {"bioinsumos", "Bioinsumos", "Biotecnologia", 8, 1.3},
+        {"genomica-animal", "Genômica Animal", "Biotecnologia", 6, 1.3},
+        {"soja-baixo-carbono", "Soja de Baixo Carbono", "Sistemas Produtivos", 9, 1.4},
+        {"ia-visao-agro", "IA & Visão Computacional", "Agro Digital", 7, 1.2},
+        {"manejo-agua", "Manejo da Água", "Clima & Sustentabilidade", 5, 1.1},
+        {"contextlab-meta", "Contexto & Metadados", "Governança Epistêmica", 6, 1.2}
+    };
+
+    std::map<std::string, domain::TopicGraphNode> node_map;
+    for (const auto& s : seeds) {
+        node_map[s.id] = domain::TopicGraphNode{
+            .id = s.id,
+            .label = s.label,
+            .category = s.category,
+            .count = s.count,
+            .weight = s.weight,
+            .is_user_interest = false
+        };
+    }
+
+    std::vector<domain::TopicGraphEdge> edges = {
+        {"ilpf", "balanco-carbono", 5, "relatesTo"},
+        {"ilpf", "pastagens-precisao", 4, "relatesTo"},
+        {"ilpf", "bioma-pampa", 4, "co-occurs"},
+        {"balanco-carbono", "bioma-pampa", 3, "relatesTo"},
+        {"pastagens-precisao", "sensoriamento-remoto", 4, "leverages"},
+        {"sensoriamento-remoto", "ia-visao-agro", 4, "integrates"},
+        {"bioinsumos", "soja-baixo-carbono", 3, "contributesTo"},
+        {"soja-baixo-carbono", "balanco-carbono", 4, "verifies"},
+        {"genomica-animal", "pastagens-precisao", 3, "connectsTo"},
+        {"manejo-agua", "sensoriamento-remoto", 3, "monitors"},
+        {"contextlab-meta", "ilpf", 3, "describes"},
+        {"contextlab-meta", "balanco-carbono", 3, "describes"}
+    };
+
+    auto all_docs = repo_->getAllDocuments().value_or(std::vector<domain::Document>{});
+    int accessible_docs = 0;
+    for (const auto& doc : all_docs) {
+        if (isDocumentAccessible(doc, user)) {
+            accessible_docs++;
+            if (user.has_value() && !doc.owner.empty() && doc.owner == user->email) {
+                for (auto& [nid, nnode] : node_map) {
+                    if (doc.title.find(nnode.label) != std::string::npos ||
+                        doc.primary_project.find(nnode.label) != std::string::npos) {
+                        nnode.is_user_interest = true;
+                        nnode.count += 2;
+                        nnode.weight += 0.3;
+                    }
+                }
+            }
+        }
+    }
+
+    for (const auto& [_, node] : node_map) {
+        data.nodes.push_back(node);
+    }
+    data.edges = std::move(edges);
+    data.total_documents = accessible_docs;
+    data.total_topics = static_cast<int>(data.nodes.size());
+
+    return core::makeOk(std::move(data));
 }
 
 core::Result<domain::TextAnalysis> ContextLabService::deepen(const std::string& id) {

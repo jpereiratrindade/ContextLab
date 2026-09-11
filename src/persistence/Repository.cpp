@@ -1,7 +1,160 @@
 #include "contextlab/persistence/Repository.hpp"
+#include <chrono>
 #include <format>
 
 namespace contextlab::persistence {
+
+// User & Auth operations
+core::Result<void> Repository::saveUser(const domain::User& user) {
+    auto stmt_res = db_.prepare(R"(
+        INSERT INTO users (email, name, role, unit, created_at, last_login_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET
+            name = excluded.name,
+            role = excluded.role,
+            unit = excluded.unit,
+            last_login_at = excluded.last_login_at;
+    )");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare saveUser query");
+    stmt_res->bindText(1, user.email);
+    stmt_res->bindText(2, user.name);
+    stmt_res->bindText(3, user.role);
+    stmt_res->bindText(4, user.unit);
+    stmt_res->bindText(5, user.created_at);
+    stmt_res->bindText(6, user.last_login_at);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<std::optional<domain::User>> Repository::getUser(const std::string& email) {
+    auto stmt_res = db_.prepare("SELECT email, name, role, unit, created_at, last_login_at FROM users WHERE email = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare getUser query");
+    stmt_res->bindText(1, email);
+    if (stmt_res->step()) {
+        domain::User u{
+            .email = stmt_res->getText(0),
+            .name = stmt_res->getText(1),
+            .role = stmt_res->getText(2),
+            .unit = stmt_res->getText(3),
+            .created_at = stmt_res->getText(4),
+            .last_login_at = stmt_res->getText(5)
+        };
+        return core::makeOk(std::make_optional(std::move(u)));
+    }
+    return core::makeOk(std::optional<domain::User>{std::nullopt});
+}
+
+core::Result<std::vector<domain::User>> Repository::getAllUsers() {
+    auto stmt_res = db_.prepare("SELECT email, name, role, unit, created_at, last_login_at FROM users ORDER BY created_at DESC;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare getAllUsers query");
+    std::vector<domain::User> list;
+    while (stmt_res->step()) {
+        list.push_back(domain::User{
+            .email = stmt_res->getText(0),
+            .name = stmt_res->getText(1),
+            .role = stmt_res->getText(2),
+            .unit = stmt_res->getText(3),
+            .created_at = stmt_res->getText(4),
+            .last_login_at = stmt_res->getText(5)
+        });
+    }
+    return core::makeOk(std::move(list));
+}
+
+core::Result<void> Repository::saveOtp(const std::string& email, const std::string& otp_code, int expire_minutes) {
+    const auto now = std::chrono::system_clock::now();
+    std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+    std::string exp_str = std::format("{:%Y-%m-%d %H:%M:%S}", now + std::chrono::minutes(expire_minutes));
+
+    auto stmt_res = db_.prepare(R"(
+        INSERT INTO auth_otps (email, otp_code, expires_at, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET
+            otp_code = excluded.otp_code,
+            expires_at = excluded.expires_at,
+            created_at = excluded.created_at;
+    )");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare saveOtp query");
+    stmt_res->bindText(1, email);
+    stmt_res->bindText(2, otp_code);
+    stmt_res->bindText(3, exp_str);
+    stmt_res->bindText(4, now_str);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<bool> Repository::verifyOtp(const std::string& email, const std::string& otp_code) {
+    const auto now = std::chrono::system_clock::now();
+    std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+
+    auto stmt_res = db_.prepare("SELECT otp_code, expires_at FROM auth_otps WHERE email = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare verifyOtp query");
+    stmt_res->bindText(1, email);
+    if (stmt_res->step()) {
+        std::string stored_code = stmt_res->getText(0);
+        std::string expires_at = stmt_res->getText(1);
+        if (stored_code == otp_code && expires_at >= now_str) {
+            (void)db_.execute("DELETE FROM auth_otps WHERE email = '" + email + "';");
+            return core::makeOk(true);
+        }
+    }
+    return core::makeOk(false);
+}
+
+core::Result<void> Repository::createSession(const std::string& email, const std::string& token, int expire_hours) {
+    const auto now = std::chrono::system_clock::now();
+    std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+    std::string exp_str = std::format("{:%Y-%m-%d %H:%M:%S}", now + std::chrono::hours(expire_hours));
+
+    auto stmt_res = db_.prepare(R"(
+        INSERT INTO auth_sessions (token, email, created_at, expires_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(token) DO UPDATE SET
+            expires_at = excluded.expires_at;
+    )");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare createSession query");
+    stmt_res->bindText(1, token);
+    stmt_res->bindText(2, email);
+    stmt_res->bindText(3, now_str);
+    stmt_res->bindText(4, exp_str);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<std::optional<domain::User>> Repository::getSessionUser(const std::string& token) {
+    const auto now = std::chrono::system_clock::now();
+    std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+
+    auto stmt_res = db_.prepare(R"(
+        SELECT u.email, u.name, u.role, u.unit, u.created_at, u.last_login_at
+        FROM auth_sessions s
+        JOIN users u ON s.email = u.email
+        WHERE s.token = ? AND s.expires_at >= ?;
+    )");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare getSessionUser query");
+    stmt_res->bindText(1, token);
+    stmt_res->bindText(2, now_str);
+    if (stmt_res->step()) {
+        domain::User u{
+            .email = stmt_res->getText(0),
+            .name = stmt_res->getText(1),
+            .role = stmt_res->getText(2),
+            .unit = stmt_res->getText(3),
+            .created_at = stmt_res->getText(4),
+            .last_login_at = stmt_res->getText(5)
+        };
+        return core::makeOk(std::make_optional(std::move(u)));
+    }
+    return core::makeOk(std::optional<domain::User>{std::nullopt});
+}
+
+core::Result<void> Repository::deleteSession(const std::string& token) {
+    auto stmt_res = db_.prepare("DELETE FROM auth_sessions WHERE token = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteSession query");
+    stmt_res->bindText(1, token);
+    stmt_res->step();
+    return core::makeOk();
+}
 
 core::Result<void> Repository::saveDocument(const domain::Document& doc) {
     auto stmt_res = db_.prepare(R"(
@@ -9,8 +162,9 @@ core::Result<void> Repository::saveDocument(const domain::Document& doc) {
             id, title, subtitle, version, date_created, date_modified, language,
             document_type, lifecycle_state, publication_state, primary_project,
             resource_scope, self_describing, self_consumption_required,
-            epistemic_status, primary_authority, text_analyzed, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            epistemic_status, primary_authority, text_analyzed, created_at,
+            owner, visibility, allowed_teams_json, allowed_users_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             subtitle = excluded.subtitle,
@@ -22,7 +176,11 @@ core::Result<void> Repository::saveDocument(const domain::Document& doc) {
             resource_scope = excluded.resource_scope,
             epistemic_status = excluded.epistemic_status,
             primary_authority = excluded.primary_authority,
-            text_analyzed = excluded.text_analyzed;
+            text_analyzed = excluded.text_analyzed,
+            owner = excluded.owner,
+            visibility = excluded.visibility,
+            allowed_teams_json = excluded.allowed_teams_json,
+            allowed_users_json = excluded.allowed_users_json;
     )");
     if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare saveDocument query");
     auto& stmt = *stmt_res;
@@ -45,6 +203,10 @@ core::Result<void> Repository::saveDocument(const domain::Document& doc) {
     stmt.bindText(16, domain::authorityToString(doc.primary_authority));
     stmt.bindInt64(17, doc.text_analyzed ? 1 : 0);
     stmt.bindText(18, doc.created_at);
+    stmt.bindText(19, doc.owner);
+    stmt.bindText(20, doc.visibility.empty() ? "public" : doc.visibility);
+    stmt.bindText(21, nlohmann::json(doc.allowed_teams).dump());
+    stmt.bindText(22, nlohmann::json(doc.allowed_users).dump());
 
     stmt.step();
 
@@ -84,12 +246,23 @@ core::Result<void> Repository::deleteDocument(const std::string& doc_id) {
     return core::makeOk();
 }
 
+static std::vector<std::string> parseJsonStringArray(const std::string& json_str) {
+    if (json_str.empty()) return {};
+    try {
+        auto j = nlohmann::json::parse(json_str);
+        if (j.is_array()) return j.get<std::vector<std::string>>();
+    } catch (...) {}
+    return {};
+}
+
 core::Result<std::optional<domain::Document>> Repository::getDocument(const std::string& doc_id) {
     auto stmt_res = db_.prepare(R"(
         SELECT id, title, subtitle, version, date_created, date_modified, language,
                document_type, lifecycle_state, publication_state, primary_project,
                resource_scope, self_describing, self_consumption_required,
-               epistemic_status, primary_authority, text_analyzed, created_at
+               epistemic_status, primary_authority, text_analyzed, created_at,
+               COALESCE(owner, ''), COALESCE(visibility, 'public'),
+               COALESCE(allowed_teams_json, '[]'), COALESCE(allowed_users_json, '[]')
         FROM documents WHERE id = ?;
     )");
     if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare getDocument query");
@@ -115,7 +288,11 @@ core::Result<std::optional<domain::Document>> Repository::getDocument(const std:
             .epistemic_status = stmt.getText(14),
             .primary_authority = domain::stringToAuthority(stmt.getText(15)),
             .text_analyzed = stmt.getInt64(16) != 0,
-            .created_at = stmt.getText(17)
+            .created_at = stmt.getText(17),
+            .owner = stmt.getText(18),
+            .visibility = stmt.getText(19).empty() ? "public" : stmt.getText(19),
+            .allowed_teams = parseJsonStringArray(stmt.getText(20)),
+            .allowed_users = parseJsonStringArray(stmt.getText(21))
         };
         return core::makeOk(std::make_optional(std::move(doc)));
     }
@@ -127,7 +304,9 @@ core::Result<std::vector<domain::Document>> Repository::getAllDocuments() {
         SELECT id, title, subtitle, version, date_created, date_modified, language,
                document_type, lifecycle_state, publication_state, primary_project,
                resource_scope, self_describing, self_consumption_required,
-               epistemic_status, primary_authority, text_analyzed, created_at
+               epistemic_status, primary_authority, text_analyzed, created_at,
+               COALESCE(owner, ''), COALESCE(visibility, 'public'),
+               COALESCE(allowed_teams_json, '[]'), COALESCE(allowed_users_json, '[]')
         FROM documents ORDER BY created_at DESC;
     )");
     if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare getAllDocuments query");
@@ -153,7 +332,11 @@ core::Result<std::vector<domain::Document>> Repository::getAllDocuments() {
             .epistemic_status = stmt.getText(14),
             .primary_authority = domain::stringToAuthority(stmt.getText(15)),
             .text_analyzed = stmt.getInt64(16) != 0,
-            .created_at = stmt.getText(17)
+            .created_at = stmt.getText(17),
+            .owner = stmt.getText(18),
+            .visibility = stmt.getText(19).empty() ? "public" : stmt.getText(19),
+            .allowed_teams = parseJsonStringArray(stmt.getText(20)),
+            .allowed_users = parseJsonStringArray(stmt.getText(21))
         });
     }
     return core::makeOk(std::move(docs));

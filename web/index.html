@@ -181,15 +181,69 @@
             </div>
 
             <div class="cl-chrome-right">
-              <button class="cl-chrome-btn" title="Notificações">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              </button>
-              <div class="cl-avatar-pill">LR</div>
+              <div class="cl-auth-section">
+                <button class="cl-btn-login-embrapa" id="btn-header-login">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Entrar @embrapa.br</span>
+                </button>
+
+                <div class="cl-user-profile-badge" id="user-profile-badge" style="display: none;">
+                  <div class="cl-user-avatar-circle" id="user-badge-avatar">JS</div>
+                  <div class="cl-user-info-text">
+                    <span class="cl-user-name" id="user-badge-name">Pesquisador</span>
+                    <span class="cl-user-unit" id="user-badge-unit">Embrapa</span>
+                  </div>
+                  <button class="cl-btn-logout" id="btn-header-logout" title="Sair da conta">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Window Inner Content -->
           <div class="cl-window-body">
+
+            <!-- Epistemic Constellation Hero (Topic Exploration Graph) -->
+            <div class="cl-constellation-hero">
+              <div class="cl-constellation-header">
+                <div class="cl-constellation-title-group">
+                  <h2>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3898ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+                    Constelação Epistêmica da Embrapa
+                  </h2>
+                  <div class="cl-constellation-subtitle">
+                    Radar coletivo de temas, conexões interdisciplinares e exploração de conhecimento
+                  </div>
+                </div>
+
+                <div class="cl-constellation-filters">
+                  <button class="cl-topic-filter-btn active" data-cat="all">Todos os Temas</button>
+                  <button class="cl-topic-filter-btn" data-cat="Sistemas Produtivos">Sistemas Produtivos</button>
+                  <button class="cl-topic-filter-btn" data-cat="Clima & Sustentabilidade">Clima & Carbono</button>
+                  <button class="cl-topic-filter-btn" data-cat="Agro Digital">Agro Digital</button>
+                  <button class="cl-topic-filter-btn" data-cat="Biotecnologia">Biotecnologia</button>
+                </div>
+              </div>
+
+              <!-- Interactive Topic Canvas -->
+              <div class="cl-constellation-canvas-container" id="constellation-container">
+                <canvas id="topic-constellation-canvas"></canvas>
+                <div class="cl-constellation-tooltip" id="constellation-tooltip"></div>
+              </div>
+
+              <div class="cl-constellation-footer">
+                <div class="cl-legend-items">
+                  <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#28dea0"></span> Sistemas Produtivos</div>
+                  <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#3898ff"></span> Clima & Sustentabilidade</div>
+                  <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#a855f7"></span> Agro Digital</div>
+                  <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#e9b348"></span> Biotecnologia</div>
+                </div>
+                <div>
+                  <span id="constellation-total-topics">11</span> clusters temáticos computáveis • Clique em um nó para explorar
+                </div>
+              </div>
+            </div>
 
             <!-- Tier 1: 4 Top Experiment Cards -->
             <div class="cl-experiments-grid">
@@ -691,6 +745,70 @@
       <div style="display: flex; justify-content: center; gap: 0.75rem;">
         <button type="button" class="btn btn-secondary" id="btn-cancel-delete">Cancelar</button>
         <button type="button" class="btn btn-rose" id="btn-confirm-delete">Excluir Registro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth OTP Modal (@embrapa.br) -->
+  <div class="modal-overlay" id="auth-otp-modal">
+    <div class="modal-card cl-auth-modal-card">
+      <div class="modal-header" style="border:none; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="cl-auth-modal-logo">
+          <div class="cl-auth-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size:1.1rem; margin:0; font-family:var(--font-display);">Acesso Corporativo</h3>
+            <div style="font-size:0.75rem; color:#94a3b8;">Rede de Pesquisa Embrapa</div>
+          </div>
+        </div>
+        <button id="btn-close-auth-modal" style="background:transparent; border:none; color:var(--cl-text-muted); cursor:pointer; font-size:1.2rem;">✕</button>
+      </div>
+
+      <!-- Step 1: Request OTP -->
+      <div id="auth-step-1">
+        <p class="cl-auth-instruction">
+          Digite seu endereço de e-mail institucional da Embrapa. Enviaremos um código seguro de uso único (OTP) para confirmação de identidade.
+        </p>
+        <form id="form-request-otp">
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label" for="auth-email-input">E-mail Institucional (@embrapa.br)</label>
+            <input type="email" id="auth-email-input" class="form-input" placeholder="nome.sobrenome@embrapa.br" required style="font-size:0.95rem; width:100%;">
+          </div>
+          <div id="auth-request-alert" style="display:none; font-size:0.8rem; margin-bottom:0.75rem;"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.65rem;">
+            Enviar Código de Acesso →
+          </button>
+        </form>
+      </div>
+
+      <!-- Step 2: Verify OTP -->
+      <div id="auth-step-2" style="display:none;">
+        <p class="cl-auth-instruction">
+          Informe o código de 6 dígitos enviado para <b id="auth-verify-email-display" style="color:#f8fafc;"></b>:
+        </p>
+        <form id="form-verify-otp">
+          <div class="cl-otp-inputs-row">
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required autofocus>
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required>
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required>
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required>
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required>
+            <input type="text" maxlength="1" class="cl-otp-digit" pattern="[0-9]" inputmode="numeric" required>
+          </div>
+
+          <div id="auth-verify-alert" style="display:none; font-size:0.8rem; margin-bottom:0.75rem;"></div>
+
+          <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" id="btn-auth-back">Voltar</button>
+            <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center;">Confirmar e Entrar</button>
+          </div>
+
+          <div class="cl-dev-hint-box" id="auth-dev-hint" style="display:none;">
+            <span>Código de teste: <strong id="auth-dev-code-val"></strong></span>
+            <button type="button" class="cl-btn-dev-autofill" id="btn-dev-autofill">Preencher</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

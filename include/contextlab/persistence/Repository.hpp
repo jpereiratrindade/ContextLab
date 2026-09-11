@@ -7,12 +7,23 @@
 #include "contextlab/persistence/Database.hpp"
 #include "contextlab/domain/Document.hpp"
 #include "contextlab/domain/DomainModels.hpp"
+#include "contextlab/domain/User.hpp"
 
 namespace contextlab::persistence {
 
 class Repository {
 public:
     explicit Repository(Database& db) : db_(db) {}
+
+    // User & Auth operations
+    [[nodiscard]] core::Result<void> saveUser(const domain::User& user);
+    [[nodiscard]] core::Result<std::optional<domain::User>> getUser(const std::string& email);
+    [[nodiscard]] core::Result<std::vector<domain::User>> getAllUsers();
+    [[nodiscard]] core::Result<void> saveOtp(const std::string& email, const std::string& otp_code, int expire_minutes = 10);
+    [[nodiscard]] core::Result<bool> verifyOtp(const std::string& email, const std::string& otp_code);
+    [[nodiscard]] core::Result<void> createSession(const std::string& email, const std::string& token, int expire_hours = 24);
+    [[nodiscard]] core::Result<std::optional<domain::User>> getSessionUser(const std::string& token);
+    [[nodiscard]] core::Result<void> deleteSession(const std::string& token);
 
     // Document operations
     [[nodiscard]] core::Result<void> saveDocument(const domain::Document& doc);

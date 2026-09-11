@@ -8,6 +8,8 @@ import { renderSemanticGraph } from './js/graph.js';
 import { renderProvenanceTimeline } from './js/timeline.js';
 import { setupExperiments } from './js/experiments.js';
 import { handleQuestionQuery } from './js/qa_engine.js';
+import { TopicConstellation } from './js/topic_constellation.js';
+import { AuthManager } from './js/auth_modal.js';
 
 // DOM Elements
 const views = {
@@ -40,6 +42,8 @@ const projectModal = document.getElementById('project-modal');
 const deleteConfirmModal = document.getElementById('delete-confirm-modal');
 
 let pendingDeleteCallback = null;
+let constellationInstance = null;
+let authManagerInstance = null;
 
 // Initialize Application
 async function initApp() {
@@ -49,8 +53,25 @@ async function initApp() {
   setupModals();
   setupExperiments(state);
 
+  // Initialize Constellation Graph & Auth
+  constellationInstance = new TopicConstellation('constellation-container');
+  authManagerInstance = new AuthManager({
+    onLogin: async () => {
+      await refreshData();
+      await constellationInstance.loadData();
+    }
+  });
+
+  document.querySelectorAll('.cl-topic-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat;
+      constellationInstance.setFilter(cat);
+    });
+  });
+
   state.subscribe(render);
   await refreshData();
+  await constellationInstance.loadData();
 
   // Initial Canonical Q&A State
   await handleQuestionQuery('Qual é o projeto?', '', state);
@@ -363,15 +384,27 @@ function renderCorpusView(s) {
   if (!grid) return;
 
   if (s.documents.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem; color: var(--cl-text-muted); text-align: center;">Nenhum documento carregado.</div>`;
+    grid.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem; color: var(--cl-text-muted); text-align: center;">Nenhum documento disponível ou autorizado.</div>`;
     return;
   }
 
-  grid.innerHTML = s.documents.map(d => `
+  const visMap = {
+    'public': { label: '🌐 PÚBLICO', class: 'cl-vis-public' },
+    'internal_embrapa': { label: '🏢 EMBRAPA INTERNO', class: 'cl-vis-internal_embrapa' },
+    'team': { label: '👥 EQUIPE', class: 'cl-vis-team' },
+    'private': { label: '🔒 PRIVADO', class: 'cl-vis-private' }
+  };
+
+  grid.innerHTML = s.documents.map(d => {
+    const vis = visMap[d.visibility] || visMap['public'];
+    return `
     <div class="cl-exp-card" style="border: 1px solid var(--cl-line);">
       <div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem;">
-          <span class="cl-exp-code">${d.id}</span>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span class="cl-exp-code">${d.id}</span>
+            <span class="cl-vis-pill ${vis.class}">${vis.label}</span>
+          </div>
           <span class="tag tag-declared">v${d.version}</span>
         </div>
         <h4 style="font-family: var(--font-display); font-size: 1rem; color: var(--cl-text-0);">${d.title}</h4>
@@ -384,6 +417,7 @@ function renderCorpusView(s) {
         <span class="tag ${d.text_analyzed ? 'tag-declared' : 'tag-status'}">
           ${d.text_analyzed ? '● APROFUNDADO' : '○ NÃO APROFUNDADO'}
         </span>
+        ${d.owner ? `<span class="tag" style="background:rgba(56,152,255,0.1); color:#3898ff;">👤 ${d.owner}</span>` : ''}
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--cl-line-subtle); padding-top: 0.5rem;">
@@ -391,7 +425,8 @@ function renderCorpusView(s) {
         <button class="btn btn-secondary btn-sm" onclick="window.contextlabInspect('${d.id}')">Abrir Contexto →</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderSearchView(s) {

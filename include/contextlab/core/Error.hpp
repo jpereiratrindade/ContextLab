@@ -20,6 +20,8 @@ enum class ErrorCode {
     TEXT_EXTRACTION_UNAVAILABLE,
     DATABASE_ERROR,
     INVALID_COMMAND,
+    INVALID_ARGUMENT,
+    PERMISSION_DENIED,
     INTERNAL_ERROR
 };
 
@@ -38,6 +40,8 @@ enum class ErrorCode {
         case ErrorCode::TEXT_EXTRACTION_UNAVAILABLE: return "TEXT_EXTRACTION_UNAVAILABLE";
         case ErrorCode::DATABASE_ERROR: return "DATABASE_ERROR";
         case ErrorCode::INVALID_COMMAND: return "INVALID_COMMAND";
+        case ErrorCode::INVALID_ARGUMENT: return "INVALID_ARGUMENT";
+        case ErrorCode::PERMISSION_DENIED: return "PERMISSION_DENIED";
         case ErrorCode::INTERNAL_ERROR: return "INTERNAL_ERROR";
     }
     return "UNKNOWN_ERROR";

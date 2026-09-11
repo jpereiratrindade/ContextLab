@@ -29,6 +29,28 @@ void HttpServer::setupRoutes() {
     // Root redirect / static serving
     server_->set_mount_point("/", web_root_.string());
 
+    // Helper to resolve authenticated user from Authorization header or token query parameter
+    auto extractUser = [this](const httplib::Request& req) -> std::optional<domain::User> {
+        std::string token;
+        if (req.has_header("Authorization")) {
+            std::string auth = req.get_header_value("Authorization");
+            if (auth.starts_with("Bearer ")) {
+                token = auth.substr(7);
+            } else {
+                token = auth;
+            }
+        }
+        if (token.empty() && req.has_param("token")) {
+            token = req.get_param_value("token");
+        }
+        if (token.empty()) return std::nullopt;
+        auto user_res = service_.authenticateToken(token);
+        if (user_res && user_res->has_value()) {
+            return *user_res;
+        }
+        return std::nullopt;
+    };
+
     // Health & System
     auto handle_health = [this](const httplib::Request&, httplib::Response& res) {
         res.set_content(service_.getHealthStatus().dump(2), "application/json");
@@ -38,6 +60,97 @@ void HttpServer::setupRoutes() {
 
     server_->Get("/api/v1/system", [this](const httplib::Request&, httplib::Response& res) {
         res.set_content(service_.getSystemInfo().dump(2), "application/json");
+    });
+
+    // =========================================================================
+    // Auth & User Management (@embrapa.br OTP)
+    // =========================================================================
+    server_->Post("/api/v1/auth/request-otp", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = nlohmann::json::parse(req.body);
+            std::string email = j.value("email", "");
+            if (email.empty()) {
+                res.status = 400;
+                res.set_content(nlohmann::json({{"error", "Campo 'email' é obrigatório"}}).dump(2), "application/json");
+                return;
+            }
+            auto otp_res = service_.requestOtp(email);
+            if (!otp_res) {
+                res.status = 400;
+                res.set_content(otp_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.status = 200;
+            res.set_content(nlohmann::json({
+                {"success", true},
+                {"email", email},
+                {"message", "Código de verificação OTP enviado com sucesso para o e-mail informado."},
+                {"dev_otp", *otp_res} // Provided for convenient test/dev workflow
+            }).dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("JSON inválido: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Post("/api/v1/auth/verify-otp", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = nlohmann::json::parse(req.body);
+            std::string email = j.value("email", "");
+            std::string code = j.value("code", "");
+            if (email.empty() || code.empty()) {
+                res.status = 400;
+                res.set_content(nlohmann::json({{"error", "Campos 'email' e 'code' são obrigatórios"}}).dump(2), "application/json");
+                return;
+            }
+            auto auth_res = service_.verifyOtp(email, code);
+            if (!auth_res) {
+                res.status = 401;
+                res.set_content(auth_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            const auto& [user, token] = *auth_res;
+            res.status = 200;
+            res.set_content(nlohmann::json({
+                {"success", true},
+                {"token", token},
+                {"user", user.toJson()}
+            }).dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("JSON inválido: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Get("/api/v1/auth/me", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
+        auto user = extractUser(req);
+        if (user.has_value()) {
+            res.status = 200;
+            res.set_content(nlohmann::json({
+                {"authenticated", true},
+                {"user", user->toJson()}
+            }).dump(2), "application/json");
+        } else {
+            res.status = 200;
+            res.set_content(nlohmann::json({
+                {"authenticated", false},
+                {"user", nullptr}
+            }).dump(2), "application/json");
+        }
+    });
+
+    server_->Post("/api/v1/auth/logout", [this](const httplib::Request& req, httplib::Response& res) {
+        std::string token;
+        if (req.has_header("Authorization")) {
+            std::string auth = req.get_header_value("Authorization");
+            if (auth.starts_with("Bearer ")) token = auth.substr(7);
+            else token = auth;
+        }
+        if (!token.empty()) {
+            (void)service_.logout(token);
+        }
+        res.status = 200;
+        res.set_content(nlohmann::json({{"success", true}}).dump(2), "application/json");
     });
 
     // Ingest endpoint (supports JSON or multipart upload)
@@ -93,9 +206,10 @@ void HttpServer::setupRoutes() {
         }
     });
 
-    // Documents
-    server_->Get("/api/v1/documents", [this](const httplib::Request&, httplib::Response& res) {
-        auto docs_res = service_.listDocuments();
+    // Documents (Access-controlled)
+    server_->Get("/api/v1/documents", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
+        auto user = extractUser(req);
+        auto docs_res = service_.listDocuments(user);
         if (!docs_res) {
             res.status = 500;
             res.set_content(docs_res.error().toJson().dump(2), "application/json");
@@ -106,11 +220,15 @@ void HttpServer::setupRoutes() {
         res.set_content(arr.dump(2), "application/json");
     });
 
-    server_->Get(R"(/api/v1/documents/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+    server_->Get(R"(/api/v1/documents/([^/]+))", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
         std::string doc_id = req.matches[1];
-        auto doc_res = service_.getDocumentFull(doc_id);
+        auto user = extractUser(req);
+        auto doc_res = service_.getDocumentFull(doc_id, user);
         if (!doc_res) {
-            res.status = (doc_res.error().code == core::ErrorCode::FILE_NOT_FOUND) ? 404 : 500;
+            int code = 500;
+            if (doc_res.error().code == core::ErrorCode::FILE_NOT_FOUND) code = 404;
+            else if (doc_res.error().code == core::ErrorCode::PERMISSION_DENIED) code = 403;
+            res.status = code;
             res.set_content(doc_res.error().toJson().dump(2), "application/json");
             return;
         }
@@ -439,14 +557,15 @@ void HttpServer::setupRoutes() {
         res.set_content(arr.dump(2), "application/json");
     });
 
-    // Search
-    server_->Post("/api/v1/search", [this](const httplib::Request& req, httplib::Response& res) {
+    // Search (Access-controlled)
+    server_->Post("/api/v1/search", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
         try {
+            auto user = extractUser(req);
             auto j = nlohmann::json::parse(req.body);
             std::string query = j.value("query", "");
             std::string mode = j.value("mode", "auto");
 
-            auto search_res = service_.search(query, mode);
+            auto search_res = service_.search(query, mode, user);
             if (!search_res) {
                 res.status = 500;
                 res.set_content(search_res.error().toJson().dump(2), "application/json");
@@ -457,6 +576,18 @@ void HttpServer::setupRoutes() {
             res.status = 400;
             res.set_content(nlohmann::json({{"error", std::string("Invalid JSON body: ") + e.what()}}).dump(2), "application/json");
         }
+    });
+
+    // Topic Graph & Epistemic Constellation Analytics
+    server_->Get("/api/v1/analytics/topic-graph", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
+        auto user = extractUser(req);
+        auto graph_res = service_.getTopicGraph(user);
+        if (!graph_res) {
+            res.status = 500;
+            res.set_content(graph_res.error().toJson().dump(2), "application/json");
+            return;
+        }
+        res.set_content(graph_res->toJson().dump(2), "application/json");
     });
 
     // Events

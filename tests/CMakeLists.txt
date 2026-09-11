@@ -15,6 +15,7 @@ add_cl_test(test_cl_exp_000_self_ingestion integration/test_cl_exp_000_self_inge
 add_cl_test(test_pdf_ingestion integration/test_pdf_ingestion.cpp)
 add_cl_test(test_deepen_lifecycle integration/test_deepen_lifecycle.cpp)
 add_cl_test(test_crud_operations integration/test_crud_operations.cpp)
+add_cl_test(test_auth_and_visibility integration/test_auth_and_visibility.cpp)
 
 # Web Smoke Test
 add_cl_test(test_web_smoke web/test_web_smoke.cpp)

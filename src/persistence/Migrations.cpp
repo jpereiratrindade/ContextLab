@@ -204,6 +204,48 @@ core::Result<void> Migrations::applyAll(Database& db) {
         rec_res->step();
     }
 
+    // Migration 2: Users, OTP Auth, Sessions, and Document Visibility
+    if (!is_applied(2)) {
+        auto m2_res = db.execute(R"(
+            CREATE TABLE IF NOT EXISTS users (
+                email TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'researcher',
+                unit TEXT NOT NULL DEFAULT 'Embrapa',
+                created_at TEXT NOT NULL,
+                last_login_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS auth_otps (
+                email TEXT PRIMARY KEY,
+                otp_code TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS auth_sessions (
+                token TEXT PRIMARY KEY,
+                email TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
+            );
+        )");
+        if (!m2_res) return m2_res;
+
+        // Add visibility columns to documents if not already present
+        // Note: ignore error if columns already exist
+        (void)db.execute("ALTER TABLE documents ADD COLUMN owner TEXT DEFAULT '';");
+        (void)db.execute("ALTER TABLE documents ADD COLUMN visibility TEXT DEFAULT 'public';");
+        (void)db.execute("ALTER TABLE documents ADD COLUMN allowed_teams_json TEXT DEFAULT '[]';");
+        (void)db.execute("ALTER TABLE documents ADD COLUMN allowed_users_json TEXT DEFAULT '[]';");
+
+        auto rec2_res = db.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (2, 'users_and_visibility', ?);");
+        if (!rec2_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to record migration 2");
+        rec2_res->bindText(1, now_str);
+        rec2_res->step();
+    }
+
     return core::makeOk();
 }
 
