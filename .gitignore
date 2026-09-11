@@ -10,6 +10,8 @@ data/*
 *.db-journal
 *.db-wal
 *.db-shm
+server.log
+bin/test_*
 
 # IDE / OS
 .vscode/

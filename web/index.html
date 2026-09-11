@@ -204,38 +204,6 @@
           <!-- Window Inner Content -->
           <div class="cl-window-body">
 
-            <!-- Epistemic Constellation Hero (Topic Exploration Graph) -->
-            <div class="cl-constellation-hero">
-              <div class="cl-constellation-header">
-                <div class="cl-constellation-title-group">
-                  <h2>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3898ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
-                    Constelação Epistêmica do Laboratório
-                  </h2>
-                  <div class="cl-constellation-subtitle">
-                    Síntese computável dos temas, conceitos e relações dos documentos em uso
-                  </div>
-                </div>
-
-                <div class="cl-constellation-filters">
-                  <button class="cl-topic-filter-btn active" data-cat="all">Todos os Temas</button>
-                </div>
-              </div>
-
-              <!-- Interactive Topic Canvas -->
-              <div class="cl-constellation-canvas-container" id="constellation-container">
-                <canvas id="topic-constellation-canvas"></canvas>
-                <div class="cl-constellation-tooltip" id="constellation-tooltip"></div>
-              </div>
-
-              <div class="cl-constellation-footer">
-                <div class="cl-legend-items"></div>
-                <div>
-                  <span id="constellation-total-topics">0</span> clusters temáticos computáveis • Clique em um nó para explorar
-                </div>
-              </div>
-            </div>
-
             <!-- Tier 1: 4 Top Experiment Cards -->
             <div class="cl-experiments-grid">
               <!-- Card 1: CL-EXP-000 (Green) -->
@@ -257,7 +225,7 @@
                 </div>
                 <div class="cl-exp-actions">
                   <button class="cl-exp-action-btn" id="btn-test-exp-000">Testar experimento →</button>
-                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                  <a href="#inspector" class="cl-exp-doc-link" id="btn-doc-exp-000">Documentação</a>
                 </div>
               </div>
 
@@ -280,7 +248,7 @@
                 </div>
                 <div class="cl-exp-actions">
                   <button class="cl-exp-action-btn" id="btn-test-exp-001">Testar experimento →</button>
-                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                  <a href="#schemas" class="cl-exp-doc-link" id="btn-doc-exp-001">Documentação</a>
                 </div>
               </div>
 
@@ -303,7 +271,7 @@
                 </div>
                 <div class="cl-exp-actions">
                   <button class="cl-exp-action-btn" id="btn-test-exp-002">Testar experimento →</button>
-                  <a href="#" class="cl-exp-doc-link">Documentação</a>
+                  <a href="#inspector" class="cl-exp-doc-link" id="btn-doc-exp-002">Documentação</a>
                 </div>
               </div>
 
@@ -391,13 +359,52 @@
                 <!-- Dual Answer Cards Grid -->
                 <div class="cl-answers-grid">
                   <!-- Left Card: Metadata-First Answer (Green) -->
-                  <div class="cl-answer-meta-card" id="card-answer-meta">
-                    <!-- Populated dynamically via qa_engine.js -->
+                  <div class="cl-answer-meta-card active-answer" id="card-answer-meta">
+                    <div>
+                      <div class="cl-answer-meta-header">
+                        <div class="cl-answer-title">Resposta por Metadados</div>
+                        <span class="cl-exp-badge cl-badge-ready">Respondida por Metadados</span>
+                      </div>
+                      <div class="cl-answer-question">Qual é o projeto?</div>
+                      <div class="cl-answer-text">
+                        O projeto é o <strong>ContextLab</strong>, um laboratório de contexto documental computável, focado em pesquisa independente sobre metadados, proveniência e aprofundamento seletivo.
+                      </div>
+                      <div class="cl-evidence-title">Evidências (Metadados Computáveis)</div>
+                      <table class="cl-evidence-table">
+                        <tr><th>Título</th><td>ContextLab — base funcional em C++26 com interface web</td></tr>
+                        <tr><th>Autor/Responsável</th><td>Equipe ContextLab <span class="tag tag-declared">DECLARED</span></td></tr>
+                        <tr><th>Projeto</th><td><span class="tag tag-project">ContextLab</span></td></tr>
+                        <tr><th>Tipo de Documento</th><td>implementation_contract</td></tr>
+                        <tr><th>Data de Criação</th><td>2026-09-11</td></tr>
+                        <tr><th>Arquivo Fonte</th><td><code>CONTEXTLAB-BOOTSTRAP-001.md</code></td></tr>
+                      </table>
+                    </div>
+                    <div class="cl-answer-footer-note">
+                      ✓ Consulta resolvida a partir de metadados declarados e proveniência auditável.
+                    </div>
                   </div>
 
                   <!-- Right Card: Selective Deepening Required (Gold) -->
-                  <div class="cl-answer-deep-card" id="card-answer-deep">
-                    <!-- Populated dynamically via qa_engine.js -->
+                  <div class="cl-answer-deep-card" id="card-answer-deep" style="opacity: 0.75;">
+                    <div>
+                      <div class="cl-answer-meta-header">
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--cl-text-muted);"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                          <span class="cl-exp-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25);">Aprofundamento Opcional</span>
+                        </div>
+                      </div>
+                      <div class="cl-answer-question">Qual é o projeto?</div>
+                      <div class="cl-answer-text">
+                        Os metadados declarados foram suficientes para responder a esta consulta sem leitura integral do arquivo. Para auditar parágrafos ou extrair trechos com hashes criptográficos, use o aprofundamento.
+                      </div>
+                      <button class="cl-btn-deepen-primary" id="btn-trigger-deepen-flow" style="cursor: pointer;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        Inspecionar Trechos Textuais
+                      </button>
+                      <div style="font-size: 0.72rem; color: var(--cl-text-muted); margin-top: 0.6rem;">
+                        Preserva o princípio metadata-first: leitura textual sob demanda.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -466,8 +473,39 @@
         <div id="inspector-content"></div>
       </section>
 
-      <!-- View: Projects -->
+      <!-- View: Exploração / Projects (Epistemic Constellation) -->
       <section class="view-section" id="view-projects">
+        <div class="cl-constellation-hero" style="margin-bottom: 1.5rem;">
+          <div class="cl-constellation-header">
+            <div class="cl-constellation-title-group">
+              <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3898ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+                Constelação Epistêmica do Laboratório
+              </h2>
+              <div class="cl-constellation-subtitle">
+                Síntese computável dos temas, conceitos e relações dos documentos em uso
+              </div>
+            </div>
+
+            <div class="cl-constellation-filters">
+              <button class="cl-topic-filter-btn active" data-cat="all">Todos os Temas</button>
+            </div>
+          </div>
+
+          <!-- Interactive Topic Canvas -->
+          <div class="cl-constellation-canvas-container" id="constellation-container">
+            <canvas id="topic-constellation-canvas"></canvas>
+            <div class="cl-constellation-tooltip" id="constellation-tooltip"></div>
+          </div>
+
+          <div class="cl-constellation-footer">
+            <div class="cl-legend-items"></div>
+            <div>
+              <span id="constellation-total-topics">0</span> clusters temáticos computáveis • Clique em um nó para explorar
+            </div>
+          </div>
+        </div>
+
         <div id="projects-content"></div>
       </section>
 

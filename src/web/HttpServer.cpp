@@ -13,11 +13,14 @@ HttpServer::~HttpServer() {
 }
 
 void HttpServer::setupRoutes() {
-    // Set CORS and security headers
+    // Set CORS and security/cache headers
     server_->set_default_headers({
         {"Access-Control-Allow-Origin", "*"},
         {"Access-Control-Allow-Methods", "GET, POST, OPTIONS"},
         {"Access-Control-Allow-Headers", "Content-Type, Authorization"},
+        {"Cache-Control", "no-cache, no-store, must-revalidate"},
+        {"Pragma", "no-cache"},
+        {"Expires", "0"},
         {"X-Content-Type-Options", "nosniff"},
         {"X-Frame-Options", "DENY"}
     });
@@ -558,20 +561,29 @@ void HttpServer::setupRoutes() {
     });
 
     // Search (Access-controlled)
-    server_->Post("/api/v1/search", [this, extractUser](const httplib::Request& req, httplib::Response& res) {
+    auto handleSearch = [this, extractUser](const std::string& query, const std::string& mode, const httplib::Request& req, httplib::Response& res) {
+        auto user = extractUser(req);
+        auto search_res = service_.search(query, mode, user);
+        if (!search_res) {
+            res.status = 500;
+            res.set_content(search_res.error().toJson().dump(2), "application/json");
+            return;
+        }
+        res.set_content(search_res->toJson().dump(2), "application/json");
+    };
+
+    server_->Get("/api/v1/search", [handleSearch](const httplib::Request& req, httplib::Response& res) {
+        std::string query = req.has_param("q") ? req.get_param_value("q") : (req.has_param("query") ? req.get_param_value("query") : "");
+        std::string mode = req.has_param("mode") ? req.get_param_value("mode") : "auto";
+        handleSearch(query, mode, req, res);
+    });
+
+    server_->Post("/api/v1/search", [handleSearch](const httplib::Request& req, httplib::Response& res) {
         try {
-            auto user = extractUser(req);
             auto j = nlohmann::json::parse(req.body);
             std::string query = j.value("query", "");
             std::string mode = j.value("mode", "auto");
-
-            auto search_res = service_.search(query, mode, user);
-            if (!search_res) {
-                res.status = 500;
-                res.set_content(search_res.error().toJson().dump(2), "application/json");
-                return;
-            }
-            res.set_content(search_res->toJson().dump(2), "application/json");
+            handleSearch(query, mode, req, res);
         } catch (const std::exception& e) {
             res.status = 400;
             res.set_content(nlohmann::json({{"error", std::string("Invalid JSON body: ") + e.what()}}).dump(2), "application/json");

@@ -21,6 +21,10 @@ class AppState {
     this.listeners = [];
   }
 
+  get() {
+    return this;
+  }
+
   subscribe(listener) {
     this.listeners.push(listener);
     return () => {

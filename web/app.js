@@ -53,28 +53,28 @@ async function initApp() {
   setupModals();
   setupExperiments(state);
 
-  // Initialize Constellation Graph & Auth
-  constellationInstance = new TopicConstellation('constellation-container');
-  authManagerInstance = new AuthManager({
-    onLogin: async () => {
-      await refreshData();
-      await constellationInstance.loadData();
-    }
-  });
-
-  document.querySelectorAll('.cl-topic-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.dataset.cat;
-      constellationInstance.setFilter(cat);
+  try {
+    constellationInstance = new TopicConstellation('constellation-container');
+    authManagerInstance = new AuthManager({
+      onLogin: async () => {
+        await refreshData();
+        await constellationInstance?.loadData();
+      }
     });
-  });
 
-  state.subscribe(render);
-  await refreshData();
-  await constellationInstance.loadData();
+    state.subscribe(render);
+    await refreshData();
+    await constellationInstance?.loadData();
+  } catch (err) {
+    console.warn('ContextLab background init warning:', err);
+  }
 
-  // Initial Canonical Q&A State
-  await handleQuestionQuery('Qual é o projeto?', '', state);
+  // Canonical Initial Q&A Query
+  try {
+    await handleQuestionQuery('Qual é o projeto?', '', state);
+  } catch (err) {
+    console.warn('Initial Q&A query warning:', err);
+  }
 }
 
 async function refreshData() {
@@ -373,7 +373,12 @@ function render(s) {
   if (s.currentView === 'corpus') renderCorpusView(s);
   if (s.currentView === 'search') renderSearchView(s);
   if (s.currentView === 'inspector' && s.selectedDocId) renderInspectorView(s.selectedDocId);
-  if (s.currentView === 'projects') renderProjectsView(s);
+  if (s.currentView === 'projects') {
+    renderProjectsView(s);
+    setTimeout(() => {
+      constellationInstance?.resize();
+    }, 50);
+  }
   if (s.currentView === 'relations') renderRelationsView(s);
   if (s.currentView === 'schemas') renderSchemasView(s);
   if (s.currentView === 'events') renderEventsView(s);
