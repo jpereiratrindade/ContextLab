@@ -11,7 +11,16 @@ namespace contextlab::ingest {
 bool PdfExtractor::canHandle(const std::filesystem::path& file_path, const std::string& media_type) const {
     if (media_type == "application/pdf") return true;
     std::string ext = file_path.extension().string();
-    return ext == ".pdf";
+    std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (ext == ".pdf") return true;
+
+    if (std::filesystem::exists(file_path) && !std::filesystem::is_directory(file_path)) {
+        std::ifstream in(file_path, std::ios::binary);
+        char magic[5] = {0};
+        in.read(magic, 4);
+        if (in.gcount() >= 4 && std::string_view(magic, 4) == "%PDF") return true;
+    }
+    return false;
 }
 
 core::Result<ExtractionResult> PdfExtractor::extract(const std::filesystem::path& file_path, const std::string& content) const {

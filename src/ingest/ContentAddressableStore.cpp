@@ -34,6 +34,20 @@ std::string ContentAddressableStore::detectMediaType(const std::filesystem::path
     if (ext == ".txt") return "text/plain";
     if (ext == ".html" || ext == ".htm") return "text/html";
     if (ext == ".yaml" || ext == ".yml") return "application/yaml";
+
+    if (std::filesystem::exists(path) && !std::filesystem::is_directory(path)) {
+        std::ifstream in(path, std::ios::binary);
+        char magic[16] = {0};
+        in.read(magic, sizeof(magic));
+        std::streamsize bytes_read = in.gcount();
+        if (bytes_read > 0) {
+            std::string_view magic_sv(magic, static_cast<size_t>(bytes_read));
+            if (magic_sv.starts_with("%PDF")) return "application/pdf";
+            if (magic_sv.starts_with("{\\rtf")) return "application/rtf";
+            if (magic_sv.starts_with("{\n") || magic_sv.starts_with("{\r\n") || magic_sv.starts_with("{\"") || magic_sv.starts_with("[\n") || magic_sv.starts_with("[{")) return "application/json";
+        }
+    }
+
     return "application/octet-stream";
 }
 

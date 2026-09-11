@@ -38,22 +38,40 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
     if (!store_res) return core::makeError(store_res.error().code, store_res.error().message);
     const auto& artifact = *store_res;
 
+    return ingestArtifact(artifact, file_path);
+}
+
+core::Result<IngestionReport> IngestionPipeline::ingestContent(std::string_view content, const std::string& original_filename, const std::string& media_type) {
+    auto store_res = cas_.storeString(content, original_filename, media_type);
+    if (!store_res) return core::makeError(store_res.error().code, store_res.error().message);
+    const auto& artifact = *store_res;
+
+    std::string fname = original_filename.empty() ? "upload.bin" : original_filename;
+    return ingestArtifact(artifact, std::filesystem::path(fname));
+}
+
+core::Result<IngestionReport> IngestionPipeline::ingestArtifact(const domain::Artifact& artifact, const std::filesystem::path& original_source_path) {
     // Save artifact in DB
     auto art_save_res = repo_.saveArtifact(artifact);
     if (!art_save_res) return std::unexpected(art_save_res.error());
 
+    auto cas_file_path = cas_.getObjectPath(artifact.sha256);
+
     std::string content;
     if (artifact.media_type != "application/pdf") {
-        std::ifstream in(file_path, std::ios::binary);
+        std::ifstream in(cas_file_path, std::ios::binary);
         content.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     }
 
-    const auto* extractor = findExtractor(file_path, artifact.media_type);
+    const auto* extractor = findExtractor(original_source_path, artifact.media_type);
     if (!extractor) {
-        return core::makeError(core::ErrorCode::FORMAT_UNSUPPORTED, "No suitable extractor for: " + file_path.string());
+        extractor = findExtractor(cas_file_path, artifact.media_type);
+    }
+    if (!extractor) {
+        return core::makeError(core::ErrorCode::FORMAT_UNSUPPORTED, "No suitable extractor for: " + original_source_path.string());
     }
 
-    auto ext_res = extractor->extract(file_path, content);
+    auto ext_res = extractor->extract(cas_file_path, content);
     if (!ext_res) {
         // Record failure event
         const auto now = std::chrono::system_clock::now();
@@ -61,7 +79,7 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
 
         domain::IngestionEvent ev{
             .timestamp = now_str,
-            .source_file = file_path.filename().string(),
+            .source_file = original_source_path.filename().string(),
             .artifact_sha256 = artifact.sha256,
             .document_id = "",
             .status = "FAILED",
@@ -77,15 +95,14 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
     const auto now = std::chrono::system_clock::now();
     std::string now_str = std::format("{:%Y-%m-%d %H:%M:%S}", now);
 
-    IngestionReport report{
-        .success = true,
-        .artifact_sha256 = artifact.sha256,
-        .source_file = file_path.filename().string(),
-        .format_detected = extracted.format_detected,
-        .has_declared_context = extracted.has_declared_context,
-        .text_analysis_performed = false,
-        .extracted_metadata = extracted.metadata_payload
-    };
+    IngestionReport report;
+    report.success = true;
+    report.artifact_sha256 = artifact.sha256;
+    report.source_file = original_source_path.filename().string();
+    report.format_detected = extracted.format_detected;
+    report.has_declared_context = extracted.has_declared_context;
+    report.text_analysis_performed = false;
+    report.extracted_metadata = extracted.metadata_payload;
 
     if (extracted.has_declared_context) {
         const auto& payload = extracted.metadata_payload;
@@ -117,8 +134,8 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
         report.validation_error = val_err;
 
         // Resolve document identity from payload
-        std::string doc_id = file_path.stem().string();
-        std::string title = file_path.stem().string();
+        std::string doc_id = original_source_path.stem().string();
+        std::string title = original_source_path.filename().string();
         std::string subtitle = "";
         std::string version = "0.1.0";
         std::string date_created = now_str;
@@ -273,18 +290,24 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
         report.message = "Ingested self-describing document successfully with declared metadata.";
     } else {
         // Document without declared metadata
-        std::string doc_id = file_path.stem().string();
+        std::string doc_id = original_source_path.stem().string();
+        if (doc_id.empty() || doc_id == artifact.sha256) {
+            doc_id = "DOC-" + artifact.sha256.substr(0, 8);
+        }
         report.document_id = doc_id;
+
+        std::string title = original_source_path.filename().string();
+        if (title.empty()) title = artifact.original_filename.empty() ? ("Document " + artifact.sha256.substr(0, 8)) : artifact.original_filename;
 
         domain::Document doc{
             .id = doc_id,
-            .title = file_path.filename().string(),
+            .title = std::move(title),
             .subtitle = "",
             .version = "0.1.0",
             .date_created = now_str,
             .date_modified = now_str,
             .language = "unknown",
-            .document_type = "unstructured_artifact",
+            .document_type = (extracted.format_detected == "pdf" ? "pdf_artifact" : "unstructured_artifact"),
             .lifecycle_state = "active",
             .publication_state = "internal",
             .primary_project = "General",
@@ -307,7 +330,7 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
     // Record ingestion event
     domain::IngestionEvent ev{
         .timestamp = now_str,
-        .source_file = file_path.filename().string(),
+        .source_file = original_source_path.filename().string(),
         .artifact_sha256 = artifact.sha256,
         .document_id = report.document_id,
         .status = "SUCCESS",
@@ -319,14 +342,6 @@ core::Result<IngestionReport> IngestionPipeline::ingestFile(const std::filesyste
     core::Logger::instance().info("DOCUMENT_INGESTED", report.message, report.toJson());
 
     return core::makeOk(std::move(report));
-}
-
-core::Result<IngestionReport> IngestionPipeline::ingestContent(std::string_view content, const std::string& original_filename, const std::string& media_type) {
-    auto store_res = cas_.storeString(content, original_filename, media_type);
-    if (!store_res) return core::makeError(store_res.error().code, store_res.error().message);
-    const auto& artifact = *store_res;
-
-    return ingestFile(cas_.getObjectPath(artifact.sha256));
 }
 
 } // namespace contextlab::ingest

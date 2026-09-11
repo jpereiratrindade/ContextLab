@@ -115,12 +115,45 @@ int main() {
     assert(ingest_res->has_declared_context == true);
     assert(ingest_res->text_analysis_performed == false);
 
-    auto doc_res = service.getDocument("RES-SAIT-NOTE-001");
-    assert(doc_res.has_value());
-    assert(doc_res->primary_project == "Projeto Resiliência de SAIT");
-    assert(doc_res->text_analyzed == false);
+    // 3. Test Ingesting PDF via memory buffer (multipart upload simulation)
+    {
+        std::ifstream in(pdf_path, std::ios::binary);
+        std::string pdf_content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    std::cout << "✓ PDF Metadata Ingestion Test PASS!\n";
+        auto upload_res = service.ingestContent(pdf_content, "uploaded_paper.pdf", "application/pdf");
+        assert(upload_res.has_value());
+        assert(upload_res->success == true);
+        assert(upload_res->document_id == "RES-SAIT-NOTE-001");
+        assert(upload_res->has_declared_context == true);
+    }
+
+    // 4. Test Ingesting a plain PDF without embedded metadata (e.g. standard research paper)
+    std::filesystem::path plain_pdf_path = temp_dir / "plain_paper.pdf";
+    {
+        QPDF qpdf;
+        qpdf.emptyPDF();
+        auto page = QPDFObjectHandle::parse("<< /Type /Page /MediaBox [0 0 612 792] >>");
+        QPDFPageDocumentHelper(qpdf).addPage(page, false);
+        QPDFWriter writer(qpdf, plain_pdf_path.string().c_str());
+        writer.write();
+    }
+    {
+        std::ifstream in(plain_pdf_path, std::ios::binary);
+        std::string plain_content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+        auto plain_upload_res = service.ingestContent(plain_content, "plain_paper.pdf", "application/pdf");
+        assert(plain_upload_res.has_value());
+        assert(plain_upload_res->success == true);
+        assert(plain_upload_res->document_id == "plain_paper");
+        assert(plain_upload_res->has_declared_context == false);
+
+        auto plain_doc = service.getDocument("plain_paper");
+        assert(plain_doc.has_value());
+        assert(plain_doc->title == "plain_paper.pdf");
+        assert(plain_doc->primary_authority == contextlab::domain::Authority::EXTERNAL);
+    }
+
+    std::cout << "✓ PDF Metadata and Plain Ingestion Test PASS!\n";
 
     std::filesystem::remove_all(temp_dir);
     return 0;

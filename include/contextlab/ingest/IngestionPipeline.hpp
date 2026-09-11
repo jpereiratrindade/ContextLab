@@ -52,6 +52,7 @@ public:
     [[nodiscard]] core::Result<IngestionReport> ingestContent(std::string_view content, const std::string& original_filename, const std::string& media_type = "");
 
 private:
+    [[nodiscard]] core::Result<IngestionReport> ingestArtifact(const domain::Artifact& artifact, const std::filesystem::path& original_source_path);
     [[nodiscard]] const IExtractor* findExtractor(const std::filesystem::path& path, const std::string& media_type) const;
 
     ContentAddressableStore& cas_;
