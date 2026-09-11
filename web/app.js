@@ -5,6 +5,7 @@ import { state } from './state.js';
 const views = {
   corpus: document.getElementById('view-corpus'),
   inspector: document.getElementById('view-inspector'),
+  projects: document.getElementById('view-projects'),
   relations: document.getElementById('view-relations'),
   schemas: document.getElementById('view-schemas'),
   events: document.getElementById('view-events')
@@ -20,9 +21,18 @@ const uploadModal = document.getElementById('upload-modal');
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
 
+// Modals
+const editDocModal = document.getElementById('edit-doc-modal');
+const relationModal = document.getElementById('relation-modal');
+const projectModal = document.getElementById('project-modal');
+const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+
+let pendingDeleteCallback = null;
+
 // Initialize App
 async function initApp() {
   setupEventListeners();
+  setupModalListeners();
   state.subscribe(render);
   await refreshData();
 }
@@ -37,6 +47,12 @@ async function refreshData() {
       api.getRecentEvents(),
       api.getSystemInfo()
     ]);
+
+    // Update project suggestion datalist
+    const dl = document.getElementById('project-suggestions');
+    if (dl) {
+      dl.innerHTML = projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
 
     state.setData({
       documents: docs,
@@ -123,6 +139,131 @@ function setupEventListeners() {
   });
 }
 
+function setupModalListeners() {
+  // Edit Document Modal
+  document.getElementById('btn-close-edit-doc')?.addEventListener('click', () => editDocModal.classList.remove('active'));
+  document.getElementById('btn-cancel-edit-doc')?.addEventListener('click', () => editDocModal.classList.remove('active'));
+  document.getElementById('form-edit-doc')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const docId = document.getElementById('edit-doc-id').value;
+    const body = {
+      title: document.getElementById('edit-doc-title').value.trim(),
+      subtitle: document.getElementById('edit-doc-subtitle').value.trim(),
+      version: document.getElementById('edit-doc-version').value.trim(),
+      language: document.getElementById('edit-doc-language').value.trim(),
+      primary_project: document.getElementById('edit-doc-project').value.trim(),
+      document_type: document.getElementById('edit-doc-type').value.trim(),
+      lifecycle_state: document.getElementById('edit-doc-lifecycle').value,
+      epistemic_status: document.getElementById('edit-doc-epistemic').value
+    };
+
+    try {
+      await api.updateDocument(docId, body);
+      editDocModal.classList.remove('active');
+      await refreshData();
+      if (state.get().selectedDocId === docId) {
+        renderInspectorView(docId);
+      }
+    } catch (err) {
+      alert('Erro ao atualizar documento: ' + err.message);
+    }
+  });
+
+  // Relation Modal
+  document.getElementById('btn-close-relation')?.addEventListener('click', () => relationModal.classList.remove('active'));
+  document.getElementById('btn-cancel-relation')?.addEventListener('click', () => relationModal.classList.remove('active'));
+  document.getElementById('form-relation')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const relId = parseInt(document.getElementById('rel-id').value, 10);
+    const body = {
+      document_id: document.getElementById('rel-document-id').value.trim(),
+      subject: document.getElementById('rel-subject').value.trim(),
+      predicate: document.getElementById('rel-predicate').value.trim(),
+      object: document.getElementById('rel-object').value.trim()
+    };
+
+    try {
+      if (relId > 0) {
+        await api.updateRelation(relId, body);
+      } else {
+        await api.createRelation(body);
+      }
+      relationModal.classList.remove('active');
+      await refreshData();
+      if (state.get().selectedDocId) {
+        renderInspectorView(state.get().selectedDocId);
+      }
+    } catch (err) {
+      alert('Erro ao salvar relação: ' + err.message);
+    }
+  });
+
+  // Project Modal
+  document.getElementById('btn-close-project')?.addEventListener('click', () => projectModal.classList.remove('active'));
+  document.getElementById('btn-cancel-project')?.addEventListener('click', () => projectModal.classList.remove('active'));
+  document.getElementById('form-project')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const projId = document.getElementById('proj-id').value.trim();
+    const isEdit = document.getElementById('proj-id').disabled;
+    const domainsStr = document.getElementById('proj-domains').value.trim();
+    const domains = domainsStr ? domainsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    const body = {
+      id: projId,
+      name: document.getElementById('proj-name').value.trim(),
+      kind: document.getElementById('proj-kind').value.trim(),
+      stage: document.getElementById('proj-stage').value,
+      research_domains: domains,
+      study_object: document.getElementById('proj-study').value.trim(),
+      research_question: document.getElementById('proj-question').value.trim()
+    };
+
+    try {
+      if (isEdit) {
+        await api.updateProject(projId, body);
+      } else {
+        await api.createProject(body);
+      }
+      projectModal.classList.remove('active');
+      await refreshData();
+    } catch (err) {
+      alert('Erro ao salvar projeto: ' + err.message);
+    }
+  });
+
+  // Delete Confirm Modal
+  document.getElementById('btn-cancel-delete')?.addEventListener('click', () => {
+    deleteConfirmModal.classList.remove('active');
+    pendingDeleteCallback = null;
+  });
+
+  document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
+    if (pendingDeleteCallback) {
+      try {
+        await pendingDeleteCallback();
+        deleteConfirmModal.classList.remove('active');
+        pendingDeleteCallback = null;
+        await refreshData();
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+      }
+    }
+  });
+
+  // Close modals on overlay backdrop click
+  [editDocModal, relationModal, projectModal, deleteConfirmModal].forEach(m => {
+    m?.addEventListener('click', (e) => {
+      if (e.target === m) m.classList.remove('active');
+    });
+  });
+}
+
+function promptDelete(message, onConfirm) {
+  document.getElementById('delete-confirm-message').textContent = message;
+  pendingDeleteCallback = onConfirm;
+  deleteConfirmModal.classList.add('active');
+}
+
 async function handleFileUpload(file) {
   const statusEl = document.getElementById('upload-status');
   statusEl.innerHTML = `<span style="color: var(--accent-cyan)">Ingerindo ${file.name}...</span>`;
@@ -134,7 +275,7 @@ async function handleFileUpload(file) {
       statusEl.innerHTML = '';
       refreshData();
       if (res.document_id) {
-        openDocumentInspector(res.document_id);
+        window.contextlabInspect(res.document_id);
       }
     }, 1200);
   } catch (err) {
@@ -166,6 +307,7 @@ function render(s) {
   // Render Views
   if (s.currentView === 'corpus') renderCorpusView(s);
   if (s.currentView === 'inspector' && s.selectedDocId) renderInspectorView(s.selectedDocId);
+  if (s.currentView === 'projects') renderProjectsView(s);
   if (s.currentView === 'relations') renderRelationsView(s);
   if (s.currentView === 'schemas') renderSchemasView(s);
   if (s.currentView === 'events') renderEventsView(s);
@@ -270,6 +412,19 @@ window.contextlabInspect = (docId) => {
   state.setView('inspector', docId);
 };
 
+window.openEditDocumentModal = (doc) => {
+  document.getElementById('edit-doc-id').value = doc.id;
+  document.getElementById('edit-doc-title').value = doc.title || '';
+  document.getElementById('edit-doc-subtitle').value = doc.subtitle || '';
+  document.getElementById('edit-doc-version').value = doc.version || '0.1.0';
+  document.getElementById('edit-doc-language').value = doc.language || 'pt-BR';
+  document.getElementById('edit-doc-project').value = doc.primary_project || '';
+  document.getElementById('edit-doc-type').value = doc.document_type || 'research_note';
+  document.getElementById('edit-doc-lifecycle').value = doc.lifecycle_state || 'draft';
+  document.getElementById('edit-doc-epistemic').value = doc.epistemic_status || 'working_hypothesis';
+  editDocModal.classList.add('active');
+};
+
 async function renderInspectorView(docId) {
   const container = document.getElementById('inspector-content');
   container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Carregando detalhes do documento...</div>`;
@@ -281,7 +436,7 @@ async function renderInspectorView(docId) {
       <div class="inspector-container">
         <div class="inspector-header">
           <div>
-            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
               <span class="doc-id" style="font-size: 1rem;">${doc.id}</span>
               <span class="doc-version">v${doc.version}</span>
               <span class="tag tag-authority">${doc.primary_authority}</span>
@@ -292,8 +447,10 @@ async function renderInspectorView(docId) {
             <h2 style="font-family: var(--font-display); font-size: 1.4rem; color: var(--text-primary);">${doc.title}</h2>
             ${doc.subtitle ? `<p style="color: var(--text-secondary); margin-top: 0.25rem;">${doc.subtitle}</p>` : ''}
           </div>
-          <div style="display: flex; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
             <button class="btn btn-secondary btn-sm" onclick="window.contextlabBackToCorpus()">← Voltar ao Corpus</button>
+            <button class="btn btn-secondary btn-sm" id="btn-edit-doc-action">✏️ Editar Documento</button>
+            <button class="btn btn-rose btn-sm" id="btn-delete-doc-action">🗑️ Excluir</button>
             <button class="btn btn-cyan btn-sm" id="btn-deepen-doc">⚡ Aprofundar no Texto</button>
           </div>
         </div>
@@ -318,6 +475,7 @@ async function renderInspectorView(docId) {
               <tr><th>Versão</th><td>${doc.version}</td></tr>
               <tr><th>Projeto Primário</th><td>${doc.primary_project}</td></tr>
               <tr><th>Tipo Documental</th><td>${doc.document_type}</td></tr>
+              <tr><th>Ciclo de Vida</th><td><code>${doc.lifecycle_state}</code></td></tr>
               <tr><th>Status Epistemológico</th><td><span class="tag tag-status">${doc.epistemic_status}</span></td></tr>
               <tr><th>Autoridade de Origem</th><td><span class="tag tag-authority">${doc.primary_authority}</span></td></tr>
               <tr><th>Idioma</th><td>${doc.language}</td></tr>
@@ -334,11 +492,14 @@ async function renderInspectorView(docId) {
               <div style="display: flex; flex-direction: column; gap: 1rem;">
                 ${doc.metadata_envelopes.map(env => `
                   <div style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                       <div>
                         <strong>Schema:</strong> <code>${env.schema_id}</code> (v${env.schema_version})
                       </div>
-                      <span class="tag tag-authority">${env.authority}</span>
+                      <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="tag tag-authority">${env.authority}</span>
+                        <button class="btn btn-rose btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="window.deleteMetadataEnvelopePrompt(${env.id})">Excluir Envelope</button>
+                      </div>
                     </div>
                     <pre class="code-block">${JSON.stringify(env.payload, null, 2)}</pre>
                   </div>
@@ -360,14 +521,17 @@ async function renderInspectorView(docId) {
 
           <!-- Tab 4: Relações -->
           <div class="tab-pane" id="tab-relations">
-            <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">Grafo de Relações Documentais</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h4 style="margin: 0; color: var(--text-primary);">Grafo de Relações Documentais</h4>
+              <button class="btn btn-primary btn-sm" onclick="window.openAddRelationModal('${doc.id}')">➕ Adicionar Relação</button>
+            </div>
             <div class="graph-container" id="doc-graph-container">
               <svg class="graph-svg" id="doc-graph-svg"></svg>
             </div>
             <div style="margin-top: 1rem;">
               <table class="kv-table">
                 <thead>
-                  <tr><th>Sujeito</th><th>Predicado</th><th>Objeto</th></tr>
+                  <tr><th>Sujeito</th><th>Predicado</th><th>Objeto</th><th>Ações</th></tr>
                 </thead>
                 <tbody>
                   ${(doc.relations || []).map(r => `
@@ -375,6 +539,10 @@ async function renderInspectorView(docId) {
                       <td><code>${r.subject}</code></td>
                       <td><span class="tag tag-project">${r.predicate}</span></td>
                       <td><code>${r.object}</code></td>
+                      <td style="white-space: nowrap;">
+                        <button class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem;" onclick="window.openEditRelationModal(${r.id}, '${doc.id}', '${r.subject}', '${r.predicate}', '${r.object}')">✏️</button>
+                        <button class="btn btn-rose btn-sm" style="padding: 0.2rem 0.5rem;" onclick="window.deleteRelationPrompt(${r.id})">🗑️</button>
+                      </td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -416,7 +584,7 @@ async function renderInspectorView(docId) {
           <div class="tab-pane" id="tab-text">
             ${doc.text_analysis ? `
               <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem;">
                   <div class="stat-card">
                     <div class="stat-label">Caracteres</div>
                     <div class="stat-value" style="font-size: 1.4rem;">${doc.text_analysis.character_count}</div>
@@ -451,7 +619,7 @@ async function renderInspectorView(docId) {
 
                 <div style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
                   <h4 style="margin-bottom: 0.5rem; color: var(--text-muted);">Amostra de Texto Indexado (FTS5)</h4>
-                  <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">${doc.text_analysis.sample_preview || ''}</p>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">${doc.text_analysis.sample_preview || ''}</p>
                 </div>
               </div>
             ` : `
@@ -472,6 +640,15 @@ async function renderInspectorView(docId) {
         </div>
       </div>
     `;
+
+    // Action button listeners
+    container.querySelector('#btn-edit-doc-action')?.addEventListener('click', () => window.openEditDocumentModal(doc));
+    container.querySelector('#btn-delete-doc-action')?.addEventListener('click', () => {
+      promptDelete(`Tem certeza que deseja excluir o documento "${doc.title}" (${doc.id})? Todos os envelopes de metadados, versões e índices FTS5 serão removidos.`, async () => {
+        await api.deleteDocument(doc.id);
+        window.contextlabBackToCorpus();
+      });
+    });
 
     // Tab navigation logic
     const tabs = container.querySelectorAll('.inspector-tab');
@@ -598,34 +775,168 @@ function drawDocRelationsGraph(doc) {
   svg.innerHTML = edgesHtml + nodesHtml;
 }
 
-function renderRelationsView(s) {
-  const container = document.getElementById('relations-content');
-  if (s.relations.length === 0) {
-    container.innerHTML = `<div style="padding: 2rem; color: var(--text-muted); text-align: center;">Nenhuma relação registrada no corpus.</div>`;
-    return;
-  }
-
+// Projects View
+function renderProjectsView(s) {
+  const container = document.getElementById('projects-content');
   container.innerHTML = `
     <div style="background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 1.5rem;">
-      <h3 style="margin-bottom: 1rem; font-family: var(--font-display);">Relações Registradas no Corpus (${s.relations.length})</h3>
-      <table class="kv-table">
-        <thead>
-          <tr><th>Documento</th><th>Sujeito</th><th>Predicado</th><th>Objeto</th></tr>
-        </thead>
-        <tbody>
-          ${s.relations.map(r => `
-            <tr>
-              <td><code>${r.document_id}</code></td>
-              <td><code>${r.subject}</code></td>
-              <td><span class="tag tag-project">${r.predicate}</span></td>
-              <td><code>${r.object}</code></td>
-            </tr>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 1.25rem;">Projetos Registrados (${s.projects.length})</h3>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">Domínios de pesquisa e fronteiras epistêmicas no ecossistema.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="window.openCreateProjectModal()">➕ Novo Projeto</button>
+      </div>
+
+      ${s.projects.length === 0 ? `
+        <div style="padding: 2rem; color: var(--text-muted); text-align: center;">Nenhum projeto registrado.</div>
+      ` : `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+          ${s.projects.map(p => `
+            <div class="doc-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div class="doc-header">
+                  <span class="doc-id">${p.id}</span>
+                  <span class="tag tag-status">${p.stage}</span>
+                </div>
+                <h4 style="margin-top: 0.5rem; font-size: 1.1rem; color: var(--text-primary);">${p.name}</h4>
+                <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.25rem;">Tipo: <code>${p.kind}</code></div>
+
+                ${p.study_object ? `<p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;"><strong>Objeto:</strong> ${p.study_object}</p>` : ''}
+                ${p.research_question ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; font-style: italic;">"${p.research_question}"</p>` : ''}
+
+                ${p.research_domains && p.research_domains.length > 0 ? `
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.75rem;">
+                    ${p.research_domains.map(d => `<span class="tag tag-project" style="font-size: 0.75rem;">${d}</span>`).join('')}
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="doc-footer" style="margin-top: 1.25rem; border-top: 1px solid var(--glass-border); padding-top: 0.75rem;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">${p.documents_count || 0} doc(s) vinculados</span>
+                <div style="display: flex; gap: 0.4rem;">
+                  <button class="btn btn-secondary btn-sm" onclick="window.openEditProjectModal('${p.id}')">✏️ Editar</button>
+                  <button class="btn btn-rose btn-sm" onclick="window.deleteProjectPrompt('${p.id}')">🗑️</button>
+                </div>
+              </div>
+            </div>
           `).join('')}
-        </tbody>
-      </table>
+        </div>
+      `}
     </div>
   `;
 }
+
+window.openCreateProjectModal = () => {
+  document.getElementById('project-modal-title').textContent = 'Novo Projeto';
+  const idInput = document.getElementById('proj-id');
+  idInput.value = '';
+  idInput.disabled = false;
+  document.getElementById('proj-name').value = '';
+  document.getElementById('proj-kind').value = 'research_project';
+  document.getElementById('proj-stage').value = 'active';
+  document.getElementById('proj-domains').value = '';
+  document.getElementById('proj-study').value = '';
+  document.getElementById('proj-question').value = '';
+  projectModal.classList.add('active');
+};
+
+window.openEditProjectModal = (projId) => {
+  const p = state.get().projects.find(x => x.id === projId);
+  if (!p) return;
+  document.getElementById('project-modal-title').textContent = `Editar Projeto: ${p.id}`;
+  const idInput = document.getElementById('proj-id');
+  idInput.value = p.id;
+  idInput.disabled = true;
+  document.getElementById('proj-name').value = p.name || '';
+  document.getElementById('proj-kind').value = p.kind || 'research_project';
+  document.getElementById('proj-stage').value = p.stage || 'active';
+  document.getElementById('proj-domains').value = (p.research_domains || []).join(', ');
+  document.getElementById('proj-study').value = p.study_object || '';
+  document.getElementById('proj-question').value = p.research_question || '';
+  projectModal.classList.add('active');
+};
+
+window.deleteProjectPrompt = (projId) => {
+  promptDelete(`Tem certeza que deseja excluir o projeto "${projId}"? Os documentos não serão apagados, apenas o vínculo será desfeito.`, async () => {
+    await api.deleteProject(projId);
+  });
+};
+
+// Relations View
+function renderRelationsView(s) {
+  const container = document.getElementById('relations-content');
+  container.innerHTML = `
+    <div style="background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 1.25rem;">Relações Registradas no Corpus (${s.relations.length})</h3>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">Triplas semânticas (sujeito - predicado - objeto) vinculando documentos e conceitos.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="window.openAddRelationModal('')">➕ Nova Relação</button>
+      </div>
+
+      ${s.relations.length === 0 ? `
+        <div style="padding: 2rem; color: var(--text-muted); text-align: center;">Nenhuma relação registrada no corpus.</div>
+      ` : `
+        <table class="kv-table">
+          <thead>
+            <tr><th>Documento</th><th>Sujeito</th><th>Predicado</th><th>Objeto</th><th>Ações</th></tr>
+          </thead>
+          <tbody>
+            ${s.relations.map(r => `
+              <tr>
+                <td><code>${r.document_id || '-'}</code></td>
+                <td><code>${r.subject}</code></td>
+                <td><span class="tag tag-project">${r.predicate}</span></td>
+                <td><code>${r.object}</code></td>
+                <td style="white-space: nowrap;">
+                  <button class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem;" onclick="window.openEditRelationModal(${r.id}, '${r.document_id || ''}', '${r.subject}', '${r.predicate}', '${r.object}')">✏️</button>
+                  <button class="btn btn-rose btn-sm" style="padding: 0.2rem 0.5rem;" onclick="window.deleteRelationPrompt(${r.id})">🗑️</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+window.openAddRelationModal = (docId = '') => {
+  document.getElementById('relation-modal-title').textContent = 'Nova Relação Triádica';
+  document.getElementById('rel-id').value = '0';
+  document.getElementById('rel-document-id').value = docId;
+  document.getElementById('rel-subject').value = docId;
+  document.getElementById('rel-predicate').value = '';
+  document.getElementById('rel-object').value = '';
+  relationModal.classList.add('active');
+};
+
+window.openEditRelationModal = (id, docId, subject, predicate, object) => {
+  document.getElementById('relation-modal-title').textContent = `Editar Relação #${id}`;
+  document.getElementById('rel-id').value = id;
+  document.getElementById('rel-document-id').value = docId;
+  document.getElementById('rel-subject').value = subject;
+  document.getElementById('rel-predicate').value = predicate;
+  document.getElementById('rel-object').value = object;
+  relationModal.classList.add('active');
+};
+
+window.deleteRelationPrompt = (id) => {
+  promptDelete(`Tem certeza que deseja excluir a relação #${id}?`, async () => {
+    await api.deleteRelation(id);
+  });
+};
+
+window.deleteMetadataEnvelopePrompt = (envId) => {
+  promptDelete(`Tem certeza que deseja excluir o envelope de metadados #${envId}?`, async () => {
+    await api.deleteMetadataEnvelope(envId);
+    if (state.get().selectedDocId) {
+      renderInspectorView(state.get().selectedDocId);
+    }
+  });
+};
 
 function renderSchemasView(s) {
   const container = document.getElementById('schemas-content');

@@ -35,6 +35,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           Corpus
         </button>
+        <button class="nav-btn" data-view="projects">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Projetos
+        </button>
         <button class="nav-btn" data-view="relations">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           Relações
@@ -133,6 +137,11 @@
       <div id="inspector-content"></div>
     </section>
 
+    <!-- View: Projects -->
+    <section class="view-section" id="view-projects">
+      <div id="projects-content"></div>
+    </section>
+
     <!-- View: Relations -->
     <section class="view-section" id="view-relations">
       <div id="relations-content"></div>
@@ -159,7 +168,7 @@
       </div>
       <div class="modal-body">
         <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
-          Formatos suportados: Markdown autodescritivo (<code>.md</code>), PDF com metadados em anexo (<code>.pdf</code>), JSON de metadados (<code>.json</code>), LaTeX (<code>.tex</code>) e Texto simples (<code>.txt</code>).
+          Formatos suportados: Markdown autodescritivo (<code>.md</code>), PDF com ou sem anexo (<code>.pdf</code>), JSON de metadados (<code>.json</code>), LaTeX (<code>.tex</code>) e Texto simples (<code>.txt</code>).
         </p>
         <div class="dropzone" id="dropzone">
           <input type="file" id="file-input" style="display: none;" accept=".md,.pdf,.json,.tex,.txt">
@@ -168,6 +177,180 @@
           <div style="font-size: 0.75rem; color: var(--text-muted);">ou clique para navegar no sistema de arquivos</div>
         </div>
         <div id="upload-status" style="margin-top: 1rem; font-size: 0.85rem; text-align: center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Document Modal -->
+  <div class="modal-overlay" id="edit-doc-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-display); font-size: 1.15rem;">Editar Documento</h3>
+        <button id="btn-close-edit-doc" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-doc">
+          <input type="hidden" id="edit-doc-id">
+          <div class="form-group">
+            <label class="form-label" for="edit-doc-title">Título</label>
+            <input type="text" id="edit-doc-title" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-doc-subtitle">Subtítulo</label>
+            <input type="text" id="edit-doc-subtitle" class="form-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-version">Versão</label>
+              <input type="text" id="edit-doc-version" class="form-input" value="0.1.0">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-language">Idioma</label>
+              <input type="text" id="edit-doc-language" class="form-input" value="pt-BR">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-project">Projeto Primário</label>
+              <input type="text" id="edit-doc-project" class="form-input" list="project-suggestions">
+              <datalist id="project-suggestions"></datalist>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-type">Tipo de Documento</label>
+              <input type="text" id="edit-doc-type" class="form-input" value="research_note">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-lifecycle">Ciclo de Vida</label>
+              <select id="edit-doc-lifecycle" class="form-input">
+                <option value="draft">draft</option>
+                <option value="active">active</option>
+                <option value="stable">stable</option>
+                <option value="archived">archived</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="edit-doc-epistemic">Status Epistêmico</label>
+              <select id="edit-doc-epistemic" class="form-input">
+                <option value="working_hypothesis">working_hypothesis</option>
+                <option value="empirical_claim">empirical_claim</option>
+                <option value="verified_hypothesis">verified_hypothesis</option>
+                <option value="unstructured_source">unstructured_source</option>
+                <option value="formal_specification">formal_specification</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-edit-doc">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relation Modal (Create / Edit) -->
+  <div class="modal-overlay" id="relation-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="relation-modal-title" style="font-family: var(--font-display); font-size: 1.15rem;">Nova Relação Triádica</h3>
+        <button id="btn-close-relation" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-relation">
+          <input type="hidden" id="rel-id" value="0">
+          <div class="form-group">
+            <label class="form-label" for="rel-document-id">Documento Vinculado</label>
+            <input type="text" id="rel-document-id" class="form-input" placeholder="ID do documento (ex: CONTEXTLAB-BOOTSTRAP-001)">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rel-subject">Sujeito</label>
+            <input type="text" id="rel-subject" class="form-input" required placeholder="ex: Documento A ou Conceito X">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rel-predicate">Predicado / Relação</label>
+            <input type="text" id="rel-predicate" class="form-input" required placeholder="ex: references, contributes_to, origin_of, models">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rel-object">Objeto</label>
+            <input type="text" id="rel-object" class="form-input" required placeholder="ex: SisterEcosystem ou Arquitetura Y">
+          </div>
+          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-relation">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Relação</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Modal (Create / Edit) -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 id="project-modal-title" style="font-family: var(--font-display); font-size: 1.15rem;">Novo Projeto</h3>
+        <button id="btn-close-project" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-project">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="proj-id">ID do Projeto</label>
+              <input type="text" id="proj-id" class="form-input" required placeholder="ex: Projeto-Alfa">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="proj-name">Nome de Exibição</label>
+              <input type="text" id="proj-name" class="form-input" required placeholder="ex: Projeto Alfa de Pesquisa">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="proj-kind">Tipo / Categoria</label>
+              <input type="text" id="proj-kind" class="form-input" value="research_project">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="proj-stage">Estágio</label>
+              <select id="proj-stage" class="form-input">
+                <option value="active">active</option>
+                <option value="exploratory">exploratory</option>
+                <option value="consolidated">consolidated</option>
+                <option value="archived">archived</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="proj-domains">Domínios de Pesquisa (separados por vírgula)</label>
+            <input type="text" id="proj-domains" class="form-input" placeholder="Engenharia de Software, Resiliência, DDD">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="proj-study">Objeto de Estudo</label>
+            <input type="text" id="proj-study" class="form-input" placeholder="ex: Dinâmica de sistemas autônomos">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="proj-question">Questão Central de Pesquisa</label>
+            <input type="text" id="proj-question" class="form-input" placeholder="ex: Como garantir integridade epistêmica sem acoplamento?">
+          </div>
+          <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Projeto</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deletion Confirmation Modal -->
+  <div class="modal-overlay" id="delete-confirm-modal">
+    <div class="modal-card" style="max-width: 420px; text-align: center;">
+      <div style="font-size: 2.5rem; color: var(--accent-rose); margin-bottom: 0.5rem;">⚠️</div>
+      <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.75rem;">Confirmar Exclusão</h3>
+      <p id="delete-confirm-message" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Tem certeza que deseja excluir este registro?
+      </p>
+      <div style="display: flex; justify-content: center; gap: 0.75rem;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-delete">Cancelar</button>
+        <button type="button" class="btn btn-rose" id="btn-confirm-delete">Excluir Registro</button>
       </div>
     </div>
   </div>

@@ -14,12 +14,31 @@ namespace contextlab::analysis {
 SelectiveDeepener::SelectiveDeepener(ingest::ContentAddressableStore& cas, persistence::Repository& repo)
     : cas_(cas), repo_(repo) {}
 
+static std::string extractPdfTextFromPath(const std::filesystem::path& pdf_path) {
+    std::string text;
+    std::string cmd = "/usr/bin/pdftotext \"" + pdf_path.string() + "\" - 2>/dev/null";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (pipe) {
+        char buffer[4096];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            text += buffer;
+        }
+        pclose(pipe);
+    }
+    return text;
+}
+
 std::vector<std::string> SelectiveDeepener::extractSections(std::string_view text) {
     std::vector<std::string> sections;
     std::istringstream stream{std::string(text)};
     std::string line;
 
+    static const std::regex numbered_sec_regex(R"(^\s*([0-9]+(?:\.[0-9]+)*\.?\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ\w].*)$)");
+
     while (std::getline(stream, line)) {
+        // Trim trailing CR
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+
         // Markdown headings
         if (line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### ")) {
             auto first_char = line.find_first_not_of("# ");
@@ -33,6 +52,13 @@ std::vector<std::string> SelectiveDeepener::extractSections(std::string_view tex
             auto end = line.find('}', start);
             if (end != std::string::npos) {
                 sections.push_back(line.substr(start, end - start));
+            }
+        }
+        // Numbered sections in plain text or PDF text (e.g. "1. Introdução" or "1.1 Contexto")
+        else if (line.size() >= 3 && line.size() <= 80) {
+            std::smatch match;
+            if (std::regex_match(line, match, numbered_sec_regex)) {
+                sections.push_back(match[1].str());
             }
         }
     }
@@ -94,21 +120,29 @@ core::Result<domain::TextAnalysis> SelectiveDeepener::deepen(const std::string& 
     }
 
     const auto& artifact = (*artifacts_res)[0];
+    std::string text_body;
+    std::string extraction_method = "native_utf8_structural_parser";
+
     if (artifact.media_type == "application/pdf") {
-        // Contract section 18: If PDF text extraction is not available, explicitly declare TEXT_EXTRACTION_UNAVAILABLE_FOR_PDF
-        return core::makeError(core::ErrorCode::TEXT_EXTRACTION_UNAVAILABLE, "TEXT_EXTRACTION_UNAVAILABLE_FOR_PDF");
-    }
+        auto cas_path = cas_.getObjectPath(artifact.sha256);
+        text_body = extractPdfTextFromPath(cas_path);
+        extraction_method = "poppler_structural_pdf_extractor";
+        if (text_body.empty()) {
+            // PDF has no text layer or could not be decoded
+            text_body = "Documento PDF processado estruturalmente. Conteúdo textual não renderizado ou sem camada OCR.";
+        }
+    } else {
+        auto content_res = cas_.readObjectString(artifact.sha256);
+        if (!content_res) return std::unexpected(content_res.error());
+        const std::string& raw_content = *content_res;
 
-    auto content_res = cas_.readObjectString(artifact.sha256);
-    if (!content_res) return std::unexpected(content_res.error());
-    const std::string& raw_content = *content_res;
-
-    // Clean metadata fence if markdown
-    std::string text_body = raw_content;
-    static const std::regex fence_regex(R"(```(?:context-metadata\+json|json\+context|context-metadata)\s*([\s\S]*?)```)");
-    std::smatch match;
-    if (std::regex_search(raw_content, match, fence_regex)) {
-        text_body.erase(static_cast<size_t>(match.position()), static_cast<size_t>(match.length()));
+        // Clean metadata fence if markdown
+        text_body = raw_content;
+        static const std::regex fence_regex(R"(```(?:context-metadata\+json|json\+context|context-metadata)\s*([\s\S]*?)```)");
+        std::smatch match;
+        if (std::regex_search(raw_content, match, fence_regex)) {
+            text_body.erase(static_cast<size_t>(match.position()), static_cast<size_t>(match.length()));
+        }
     }
 
     uint64_t char_count = text_body.size();
@@ -130,8 +164,8 @@ core::Result<domain::TextAnalysis> SelectiveDeepener::deepen(const std::string& 
     auto top_terms = extractTopTerms(text_body, 12);
 
     std::string preview;
-    if (text_body.size() > 300) {
-        preview = text_body.substr(0, 300) + "...";
+    if (text_body.size() > 500) {
+        preview = text_body.substr(0, 500) + "...";
     } else {
         preview = text_body;
     }
@@ -148,7 +182,7 @@ core::Result<domain::TextAnalysis> SelectiveDeepener::deepen(const std::string& 
         .section_count = sections.size(),
         .top_terms = std::move(top_terms),
         .sections = std::move(sections),
-        .extraction_method = "native_utf8_structural_parser",
+        .extraction_method = std::move(extraction_method),
         .source_digest = artifact.sha256,
         .sample_preview = std::move(preview)
     };

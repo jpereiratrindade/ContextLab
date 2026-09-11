@@ -45,8 +45,22 @@ public:
     [[nodiscard]] core::Result<domain::Document> getDocument(const std::string& id);
     [[nodiscard]] core::Result<nlohmann::json> getDocumentFull(const std::string& id);
     [[nodiscard]] core::Result<std::vector<domain::Document>> listDocuments();
+    [[nodiscard]] core::Result<void> updateDocument(const domain::Document& doc);
+    [[nodiscard]] core::Result<void> deleteDocument(const std::string& id);
+
     [[nodiscard]] core::Result<std::vector<domain::Project>> listProjects();
+    [[nodiscard]] core::Result<void> createProject(const domain::Project& project);
+    [[nodiscard]] core::Result<void> updateProject(const domain::Project& project);
+    [[nodiscard]] core::Result<void> deleteProject(const std::string& id);
+
     [[nodiscard]] core::Result<std::vector<domain::Relation>> listRelations();
+    [[nodiscard]] core::Result<void> createRelation(const domain::Relation& relation);
+    [[nodiscard]] core::Result<void> updateRelation(const domain::Relation& relation);
+    [[nodiscard]] core::Result<void> deleteRelation(int64_t id);
+
+    [[nodiscard]] core::Result<void> saveMetadataEnvelope(const domain::MetadataEnvelope& env);
+    [[nodiscard]] core::Result<void> deleteMetadataEnvelope(const std::string& id);
+
     [[nodiscard]] core::Result<std::vector<domain::SchemaDefinition>> listSchemas();
     [[nodiscard]] core::Result<retrieval::SearchResponse> search(const std::string& query, const std::string& mode = "auto");
     [[nodiscard]] core::Result<domain::TextAnalysis> deepen(const std::string& id);

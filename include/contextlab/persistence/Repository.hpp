@@ -16,6 +16,8 @@ public:
 
     // Document operations
     [[nodiscard]] core::Result<void> saveDocument(const domain::Document& doc);
+    [[nodiscard]] core::Result<void> updateDocument(const domain::Document& doc);
+    [[nodiscard]] core::Result<void> deleteDocument(const std::string& doc_id);
     [[nodiscard]] core::Result<std::optional<domain::Document>> getDocument(const std::string& doc_id);
     [[nodiscard]] core::Result<std::vector<domain::Document>> getAllDocuments();
     [[nodiscard]] core::Result<size_t> countDocuments();
@@ -30,22 +32,29 @@ public:
 
     // Metadata Envelope operations
     [[nodiscard]] core::Result<void> saveMetadataEnvelope(const domain::MetadataEnvelope& env);
+    [[nodiscard]] core::Result<void> deleteMetadataEnvelope(const std::string& id);
     [[nodiscard]] core::Result<std::vector<domain::MetadataEnvelope>> getMetadataEnvelopes(const std::string& doc_id);
     [[nodiscard]] core::Result<std::vector<domain::MetadataEnvelope>> getAllMetadataEnvelopes();
 
     // Project operations
     [[nodiscard]] core::Result<void> saveProject(const domain::Project& project);
+    [[nodiscard]] core::Result<void> deleteProject(const std::string& project_id);
     [[nodiscard]] core::Result<std::optional<domain::Project>> getProject(const std::string& project_id);
     [[nodiscard]] core::Result<std::vector<domain::Project>> getAllProjects();
     [[nodiscard]] core::Result<void> linkDocumentProject(const std::string& doc_id, const std::string& project_id);
+    [[nodiscard]] core::Result<void> unlinkDocumentProject(const std::string& doc_id, const std::string& project_id);
 
     // Concept operations
     [[nodiscard]] core::Result<void> saveConcept(const domain::Concept& concept_item);
+    [[nodiscard]] core::Result<void> deleteConcept(const std::string& concept_id);
     [[nodiscard]] core::Result<std::vector<domain::Concept>> getConceptsForDocument(const std::string& doc_id);
     [[nodiscard]] core::Result<void> linkDocumentConcept(const std::string& doc_id, const std::string& concept_id);
+    [[nodiscard]] core::Result<void> unlinkDocumentConcept(const std::string& doc_id, const std::string& concept_id);
 
     // Relation operations
     [[nodiscard]] core::Result<void> saveRelation(const domain::Relation& relation);
+    [[nodiscard]] core::Result<void> updateRelation(const domain::Relation& relation);
+    [[nodiscard]] core::Result<void> deleteRelation(int64_t relation_id);
     [[nodiscard]] core::Result<std::vector<domain::Relation>> getRelationsForDocument(const std::string& doc_id);
     [[nodiscard]] core::Result<std::vector<domain::Relation>> getAllRelations();
 

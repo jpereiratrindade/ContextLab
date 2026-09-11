@@ -117,6 +117,55 @@ void HttpServer::setupRoutes() {
         res.set_content(doc_res->dump(2), "application/json");
     });
 
+    server_->Put(R"(/api/v1/documents/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            std::string doc_id = req.matches[1];
+            auto existing = service_.getDocument(doc_id);
+            if (!existing) {
+                res.status = 404;
+                res.set_content(existing.error().toJson().dump(2), "application/json");
+                return;
+            }
+            auto j = nlohmann::json::parse(req.body);
+            auto doc = *existing;
+            if (j.contains("title") && j["title"].is_string()) doc.title = j["title"].get<std::string>();
+            if (j.contains("subtitle") && j["subtitle"].is_string()) doc.subtitle = j["subtitle"].get<std::string>();
+            if (j.contains("version") && j["version"].is_string()) doc.version = j["version"].get<std::string>();
+            if (j.contains("language") && j["language"].is_string()) doc.language = j["language"].get<std::string>();
+            if (j.contains("document_type") && j["document_type"].is_string()) doc.document_type = j["document_type"].get<std::string>();
+            if (j.contains("lifecycle_state") && j["lifecycle_state"].is_string()) doc.lifecycle_state = j["lifecycle_state"].get<std::string>();
+            if (j.contains("publication_state") && j["publication_state"].is_string()) doc.publication_state = j["publication_state"].get<std::string>();
+            if (j.contains("primary_project") && j["primary_project"].is_string()) doc.primary_project = j["primary_project"].get<std::string>();
+            if (j.contains("resource_scope") && j["resource_scope"].is_string()) doc.resource_scope = j["resource_scope"].get<std::string>();
+            if (j.contains("epistemic_status") && j["epistemic_status"].is_string()) doc.epistemic_status = j["epistemic_status"].get<std::string>();
+
+            const auto now = std::chrono::system_clock::now();
+            doc.date_modified = std::format("{:%Y-%m-%d %H:%M:%S}", now);
+
+            auto update_res = service_.updateDocument(doc);
+            if (!update_res) {
+                res.status = 500;
+                res.set_content(update_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.set_content(doc.toJson().dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid JSON: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Delete(R"(/api/v1/documents/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        std::string doc_id = req.matches[1];
+        auto del_res = service_.deleteDocument(doc_id);
+        if (!del_res) {
+            res.status = 500;
+            res.set_content(del_res.error().toJson().dump(2), "application/json");
+            return;
+        }
+        res.set_content(nlohmann::json({{"success", true}, {"deleted_id", doc_id}}).dump(2), "application/json");
+    });
+
     server_->Get(R"(/api/v1/documents/([^/]+)/metadata)", [this](const httplib::Request& req, httplib::Response& res) {
         std::string doc_id = req.matches[1];
         auto doc_res = service_.getDocumentFull(doc_id);
@@ -130,6 +179,17 @@ void HttpServer::setupRoutes() {
             {"metadata_envelopes", (*doc_res)["metadata_envelopes"]}
         };
         res.set_content(resp.dump(2), "application/json");
+    });
+
+    server_->Delete(R"(/api/v1/metadata/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        std::string env_id = req.matches[1];
+        auto del_res = service_.deleteMetadataEnvelope(env_id);
+        if (!del_res) {
+            res.status = 500;
+            res.set_content(del_res.error().toJson().dump(2), "application/json");
+            return;
+        }
+        res.set_content(nlohmann::json({{"success", true}, {"deleted_id", env_id}}).dump(2), "application/json");
     });
 
     server_->Get(R"(/api/v1/documents/([^/]+)/relations)", [this](const httplib::Request& req, httplib::Response& res) {
@@ -201,6 +261,85 @@ void HttpServer::setupRoutes() {
         res.set_content(arr.dump(2), "application/json");
     });
 
+    server_->Post("/api/v1/projects", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = nlohmann::json::parse(req.body);
+            std::string p_id = j.value("id", "");
+            if (p_id.empty()) {
+                res.status = 400;
+                res.set_content(nlohmann::json({{"error", "Project 'id' is required"}}).dump(2), "application/json");
+                return;
+            }
+            std::vector<std::string> domains;
+            if (j.contains("research_domain") && j["research_domain"].is_array()) {
+                domains = j["research_domain"].get<std::vector<std::string>>();
+            }
+            domain::Project p{
+                .id = p_id,
+                .name = j.value("name", p_id),
+                .kind = j.value("kind", "research_project"),
+                .research_domain = std::move(domains),
+                .stage = j.value("stage", "active"),
+                .object_of_study = j.value("object_of_study", ""),
+                .central_question = j.value("central_question", ""),
+                .engineering_question = j.value("engineering_question", "")
+            };
+            auto create_res = service_.createProject(p);
+            if (!create_res) {
+                res.status = 500;
+                res.set_content(create_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.status = 201;
+            res.set_content(p.toJson().dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid JSON: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Put(R"(/api/v1/projects/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            std::string p_id = req.matches[1];
+            auto j = nlohmann::json::parse(req.body);
+            std::vector<std::string> domains;
+            if (j.contains("research_domain") && j["research_domain"].is_array()) {
+                domains = j["research_domain"].get<std::vector<std::string>>();
+            }
+            domain::Project p{
+                .id = p_id,
+                .name = j.value("name", p_id),
+                .kind = j.value("kind", "research_project"),
+                .research_domain = std::move(domains),
+                .stage = j.value("stage", "active"),
+                .object_of_study = j.value("object_of_study", ""),
+                .central_question = j.value("central_question", ""),
+                .engineering_question = j.value("engineering_question", "")
+            };
+            auto update_res = service_.updateProject(p);
+            if (!update_res) {
+                res.status = 500;
+                res.set_content(update_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.set_content(p.toJson().dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid JSON: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Delete(R"(/api/v1/projects/([^/]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        std::string p_id = req.matches[1];
+        auto del_res = service_.deleteProject(p_id);
+        if (!del_res) {
+            res.status = 500;
+            res.set_content(del_res.error().toJson().dump(2), "application/json");
+            return;
+        }
+        res.set_content(nlohmann::json({{"success", true}, {"deleted_id", p_id}}).dump(2), "application/json");
+    });
+
     // Relations
     server_->Get("/api/v1/relations", [this](const httplib::Request&, httplib::Response& res) {
         auto rels_res = service_.listRelations();
@@ -212,6 +351,79 @@ void HttpServer::setupRoutes() {
         nlohmann::json arr = nlohmann::json::array();
         for (const auto& r : *rels_res) arr.push_back(r.toJson());
         res.set_content(arr.dump(2), "application/json");
+    });
+
+    server_->Post("/api/v1/relations", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = nlohmann::json::parse(req.body);
+            std::string sub = j.value("subject", "");
+            std::string pred = j.value("predicate", "");
+            std::string obj = j.value("object", "");
+            std::string doc_id = j.value("document_id", "");
+            if (sub.empty() || pred.empty() || obj.empty()) {
+                res.status = 400;
+                res.set_content(nlohmann::json({{"error", "'subject', 'predicate' and 'object' are required"}}).dump(2), "application/json");
+                return;
+            }
+            domain::Relation r{
+                .id = 0,
+                .subject = std::move(sub),
+                .predicate = std::move(pred),
+                .object = std::move(obj),
+                .document_id = std::move(doc_id)
+            };
+            auto save_res = service_.createRelation(r);
+            if (!save_res) {
+                res.status = 500;
+                res.set_content(save_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.status = 201;
+            res.set_content(r.toJson().dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid JSON: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Put(R"(/api/v1/relations/([0-9]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            int64_t rel_id = std::stoll(req.matches[1]);
+            auto j = nlohmann::json::parse(req.body);
+            domain::Relation r{
+                .id = rel_id,
+                .subject = j.value("subject", ""),
+                .predicate = j.value("predicate", ""),
+                .object = j.value("object", ""),
+                .document_id = j.value("document_id", "")
+            };
+            auto update_res = service_.updateRelation(r);
+            if (!update_res) {
+                res.status = 500;
+                res.set_content(update_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.set_content(r.toJson().dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid JSON: ") + e.what()}}).dump(2), "application/json");
+        }
+    });
+
+    server_->Delete(R"(/api/v1/relations/([0-9]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            int64_t rel_id = std::stoll(req.matches[1]);
+            auto del_res = service_.deleteRelation(rel_id);
+            if (!del_res) {
+                res.status = 500;
+                res.set_content(del_res.error().toJson().dump(2), "application/json");
+                return;
+            }
+            res.set_content(nlohmann::json({{"success", true}, {"deleted_id", rel_id}}).dump(2), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(nlohmann::json({{"error", std::string("Invalid relation ID: ") + e.what()}}).dump(2), "application/json");
+        }
     });
 
     // Schemas

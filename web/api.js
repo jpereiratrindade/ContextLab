@@ -55,6 +55,115 @@ export const api = {
     return res.json();
   },
 
+  async updateDocument(id, data) {
+    const res = await fetch(`${BASE_URL}/documents/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao atualizar documento');
+    }
+    return res.json();
+  },
+
+  async deleteDocument(id) {
+    const res = await fetch(`${BASE_URL}/documents/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao excluir documento');
+    }
+    return res.json();
+  },
+
+  async createProject(data) {
+    const res = await fetch(`${BASE_URL}/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao criar projeto');
+    }
+    return res.json();
+  },
+
+  async updateProject(id, data) {
+    const res = await fetch(`${BASE_URL}/projects/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao atualizar projeto');
+    }
+    return res.json();
+  },
+
+  async deleteProject(id) {
+    const res = await fetch(`${BASE_URL}/projects/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao excluir projeto');
+    }
+    return res.json();
+  },
+
+  async createRelation(data) {
+    const res = await fetch(`${BASE_URL}/relations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao criar relação');
+    }
+    return res.json();
+  },
+
+  async updateRelation(id, data) {
+    const res = await fetch(`${BASE_URL}/relations/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao atualizar relação');
+    }
+    return res.json();
+  },
+
+  async deleteRelation(id) {
+    const res = await fetch(`${BASE_URL}/relations/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao excluir relação');
+    }
+    return res.json();
+  },
+
+  async deleteMetadataEnvelope(id) {
+    const res = await fetch(`${BASE_URL}/metadata/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Falha ao excluir envelope de metadados');
+    }
+    return res.json();
+  },
+
   async deepen(id) {
     const res = await fetch(`${BASE_URL}/documents/${encodeURIComponent(id)}/deepen`, {
       method: 'POST'

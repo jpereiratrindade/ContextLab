@@ -192,14 +192,64 @@ core::Result<std::vector<domain::Document>> ContextLabService::listDocuments() {
     return repo_->getAllDocuments();
 }
 
+core::Result<void> ContextLabService::updateDocument(const domain::Document& doc) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->updateDocument(doc);
+}
+
+core::Result<void> ContextLabService::deleteDocument(const std::string& id) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->deleteDocument(id);
+}
+
 core::Result<std::vector<domain::Project>> ContextLabService::listProjects() {
     if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
     return repo_->getAllProjects();
 }
 
+core::Result<void> ContextLabService::createProject(const domain::Project& project) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->saveProject(project);
+}
+
+core::Result<void> ContextLabService::updateProject(const domain::Project& project) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->saveProject(project);
+}
+
+core::Result<void> ContextLabService::deleteProject(const std::string& id) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->deleteProject(id);
+}
+
 core::Result<std::vector<domain::Relation>> ContextLabService::listRelations() {
     if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
     return repo_->getAllRelations();
+}
+
+core::Result<void> ContextLabService::createRelation(const domain::Relation& relation) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->saveRelation(relation);
+}
+
+core::Result<void> ContextLabService::updateRelation(const domain::Relation& relation) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->updateRelation(relation);
+}
+
+core::Result<void> ContextLabService::deleteRelation(int64_t id) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->deleteRelation(id);
+}
+
+core::Result<void> ContextLabService::saveMetadataEnvelope(const domain::MetadataEnvelope& env) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->saveMetadataEnvelope(env);
+}
+
+core::Result<void> ContextLabService::deleteMetadataEnvelope(const std::string& id) {
+    if (!repo_) return core::makeError(core::ErrorCode::INTERNAL_ERROR, "Service not initialized");
+    return repo_->deleteMetadataEnvelope(id);
 }
 
 core::Result<std::vector<domain::SchemaDefinition>> ContextLabService::listSchemas() {

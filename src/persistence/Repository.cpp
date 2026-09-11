@@ -63,6 +63,27 @@ core::Result<void> Repository::saveDocument(const domain::Document& doc) {
     return core::makeOk();
 }
 
+core::Result<void> Repository::updateDocument(const domain::Document& doc) {
+    return saveDocument(doc);
+}
+
+core::Result<void> Repository::deleteDocument(const std::string& doc_id) {
+    (void)db_.execute("DELETE FROM document_artifacts WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM metadata_envelopes WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM document_projects WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM document_concepts WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM relations WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM text_analysis WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM document_versions WHERE document_id = '" + doc_id + "';");
+    (void)db_.execute("DELETE FROM document_text_fts WHERE document_id = '" + doc_id + "';");
+
+    auto stmt_res = db_.prepare("DELETE FROM documents WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteDocument");
+    stmt_res->bindText(1, doc_id);
+    (void)stmt_res->step();
+    return core::makeOk();
+}
+
 core::Result<std::optional<domain::Document>> Repository::getDocument(const std::string& doc_id) {
     auto stmt_res = db_.prepare(R"(
         SELECT id, title, subtitle, version, date_created, date_modified, language,
@@ -460,6 +481,50 @@ core::Result<void> Repository::linkDocumentConcept(const std::string& doc_id, co
     return core::makeOk();
 }
 
+core::Result<void> Repository::deleteMetadataEnvelope(const std::string& id) {
+    auto stmt_res = db_.prepare("DELETE FROM metadata_envelopes WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteMetadataEnvelope");
+    stmt_res->bindText(1, id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::deleteProject(const std::string& project_id) {
+    (void)db_.execute("DELETE FROM document_projects WHERE project_id = '" + project_id + "';");
+    auto stmt_res = db_.prepare("DELETE FROM projects WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteProject");
+    stmt_res->bindText(1, project_id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::unlinkDocumentProject(const std::string& doc_id, const std::string& project_id) {
+    auto stmt_res = db_.prepare("DELETE FROM document_projects WHERE document_id = ? AND project_id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare unlinkDocumentProject");
+    stmt_res->bindText(1, doc_id);
+    stmt_res->bindText(2, project_id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::deleteConcept(const std::string& concept_id) {
+    (void)db_.execute("DELETE FROM document_concepts WHERE concept_id = '" + concept_id + "';");
+    auto stmt_res = db_.prepare("DELETE FROM concepts WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteConcept");
+    stmt_res->bindText(1, concept_id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::unlinkDocumentConcept(const std::string& doc_id, const std::string& concept_id) {
+    auto stmt_res = db_.prepare("DELETE FROM document_concepts WHERE document_id = ? AND concept_id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare unlinkDocumentConcept");
+    stmt_res->bindText(1, doc_id);
+    stmt_res->bindText(2, concept_id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
 core::Result<void> Repository::saveRelation(const domain::Relation& relation) {
     auto stmt_res = db_.prepare("INSERT INTO relations (subject, predicate, object, document_id) VALUES (?, ?, ?, ?);");
     if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to save relation");
@@ -467,6 +532,26 @@ core::Result<void> Repository::saveRelation(const domain::Relation& relation) {
     stmt_res->bindText(2, relation.predicate);
     stmt_res->bindText(3, relation.object);
     stmt_res->bindText(4, relation.document_id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::updateRelation(const domain::Relation& relation) {
+    auto stmt_res = db_.prepare("UPDATE relations SET subject = ?, predicate = ?, object = ?, document_id = ? WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare updateRelation");
+    stmt_res->bindText(1, relation.subject);
+    stmt_res->bindText(2, relation.predicate);
+    stmt_res->bindText(3, relation.object);
+    stmt_res->bindText(4, relation.document_id);
+    stmt_res->bindInt64(5, relation.id);
+    stmt_res->step();
+    return core::makeOk();
+}
+
+core::Result<void> Repository::deleteRelation(int64_t relation_id) {
+    auto stmt_res = db_.prepare("DELETE FROM relations WHERE id = ?;");
+    if (!stmt_res) return core::makeError(core::ErrorCode::DATABASE_ERROR, "Failed to prepare deleteRelation");
+    stmt_res->bindInt64(1, relation_id);
     stmt_res->step();
     return core::makeOk();
 }
