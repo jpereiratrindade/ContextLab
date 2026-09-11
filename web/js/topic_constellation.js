@@ -1,6 +1,6 @@
 /**
  * ContextLab — Topic Constellation Canvas Visualizer
- * Renders an interactive cosmic knowledge graph of Embrapa research themes.
+ * Renders an interactive knowledge graph dynamically synthesized from documents in use.
  */
 
 import { api } from '../api.js';
@@ -21,20 +21,47 @@ export class TopicConstellation {
     this.animFrameId = null;
 
     this.categoryColors = {
-      'Sistemas Produtivos': { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.4)' },
-      'Clima & Sustentabilidade': { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.4)' },
-      'Agro Digital': { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
-      'Biotecnologia': { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.4)' },
-      'Biomas & Ecologia': { bg: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
-      'Governança Epistêmica': { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' },
+      'Projetos': { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.4)' },
+      'Domínios de Pesquisa': { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.4)' },
+      'Métodos & Estratégias': { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
+      'Metadados & Governança': { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' },
+      'Artefatos de Pesquisa': { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.4)' },
+      'Artefatos & Entidades': { bg: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
+      'Conceitos de Pesquisa': { bg: '#818cf8', glow: 'rgba(129, 140, 248, 0.4)' },
+      'Conceitos': { bg: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' },
       'default': { bg: '#94a3b8', glow: 'rgba(148, 163, 184, 0.3)' }
     };
+
+    this.palette = [
+      { bg: '#28dea0', glow: 'rgba(40, 222, 160, 0.4)' },
+      { bg: '#3898ff', glow: 'rgba(56, 152, 255, 0.4)' },
+      { bg: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
+      { bg: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' },
+      { bg: '#e9b348', glow: 'rgba(233, 179, 72, 0.4)' },
+      { bg: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
+      { bg: '#818cf8', glow: 'rgba(129, 140, 248, 0.4)' },
+      { bg: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' },
+      { bg: '#f97316', glow: 'rgba(249, 115, 22, 0.4)' }
+    ];
 
     if (this.canvas) {
       this.ctx = this.canvas.getContext('2d');
       this.initEvents();
       this.resize();
     }
+  }
+
+  getCategoryColor(cat) {
+    if (!cat) return this.categoryColors.default;
+    if (this.categoryColors[cat]) return this.categoryColors[cat];
+
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) {
+      hash = (hash * 31 + cat.charCodeAt(i)) % this.palette.length;
+    }
+    const assigned = this.palette[Math.abs(hash)];
+    this.categoryColors[cat] = assigned;
+    return assigned;
   }
 
   resize() {
@@ -79,16 +106,62 @@ export class TopicConstellation {
         ...n,
         x: 0,
         y: 0,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        radius: Math.max(14, Math.min(32, 12 + (n.count || 1) * 1.5))
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        radius: Math.max(14, Math.min(30, 12 + (n.count || 1) * 2))
       }));
       this.edges = data.edges || [];
       this.layoutNodes();
+      this.renderDynamicFiltersAndLegend();
       this.startAnimation();
       this.updateMetrics(data);
     } catch (err) {
       console.warn('Could not load topic graph:', err);
+    }
+  }
+
+  renderDynamicFiltersAndLegend() {
+    const filtersContainer = document.querySelector('.cl-constellation-filters');
+    const legendContainer = document.querySelector('.cl-legend-items');
+
+    if (!filtersContainer && !legendContainer) return;
+
+    const catCounts = {};
+    this.nodes.forEach(n => {
+      const c = n.category || 'Outros';
+      catCounts[c] = (catCounts[c] || 0) + 1;
+    });
+
+    const categories = Object.keys(catCounts);
+
+    if (filtersContainer) {
+      filtersContainer.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.className = `cl-topic-filter-btn ${this.activeFilter === 'all' ? 'active' : ''}`;
+      allBtn.dataset.cat = 'all';
+      allBtn.textContent = `Todos (${this.nodes.length})`;
+      allBtn.addEventListener('click', () => this.setFilter('all'));
+      filtersContainer.appendChild(allBtn);
+
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `cl-topic-filter-btn ${this.activeFilter === cat ? 'active' : ''}`;
+        btn.dataset.cat = cat;
+        btn.textContent = `${cat} (${catCounts[cat]})`;
+        btn.addEventListener('click', () => this.setFilter(cat));
+        filtersContainer.appendChild(btn);
+      });
+    }
+
+    if (legendContainer) {
+      legendContainer.innerHTML = '';
+      categories.forEach(cat => {
+        const color = this.getCategoryColor(cat);
+        const item = document.createElement('div');
+        item.className = 'cl-legend-item';
+        item.innerHTML = `<span class="cl-legend-dot" style="background:${color.bg}"></span> ${cat}`;
+        legendContainer.appendChild(item);
+      });
     }
   }
 
@@ -117,7 +190,6 @@ export class TopicConstellation {
     this.selectedNode = node;
     state.setSelectedTopic(node.label);
 
-    // Filter documents or execute search
     const searchInput = document.getElementById('qa-search-input') || document.getElementById('global-search-input');
     if (searchInput) {
       searchInput.value = node.label;
@@ -141,7 +213,7 @@ export class TopicConstellation {
     this.canvas.style.cursor = found ? 'pointer' : 'default';
 
     if (found && this.tooltip) {
-      const colors = this.categoryColors[found.category] || this.categoryColors.default;
+      const colors = this.getCategoryColor(found.category);
       this.tooltip.innerHTML = `
         <div style="font-weight:700; font-size:0.85rem; color:#fff; display:flex; align-items:center; gap:0.4rem;">
           <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${colors.bg}"></span>
@@ -149,7 +221,7 @@ export class TopicConstellation {
         </div>
         <div style="color:#94a3b8; font-size:0.7rem; margin-top:0.2rem;">${found.category}</div>
         <div style="margin-top:0.4rem; font-size:0.72rem; color:#3898ff;">
-          ${found.count} documentos relacionados ${found.is_user_interest ? '• <span style="color:#28dea0">★ Sua Pesquisa</span>' : ''}
+          ${found.count} documento(s) relacionado(s) ${found.is_user_interest ? '• <span style="color:#28dea0">★ Seu Documento</span>' : ''}
         </div>
       `;
       this.tooltip.style.left = `${x}px`;
@@ -168,6 +240,14 @@ export class TopicConstellation {
       time += 0.02;
       this.ctx.clearRect(0, 0, this.width, this.height);
 
+      if (this.nodes.length === 0) {
+        this.ctx.font = '500 13px "Inter", sans-serif';
+        this.ctx.fillStyle = '#64748b';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Nenhum conceito computável indexado. Ingeste documentos para sintetizar a constelação.', this.width / 2, this.height / 2);
+        return;
+      }
+
       // 1. Draw subtle background coordinate mesh & orbital rings
       this.ctx.strokeStyle = 'rgba(56, 152, 255, 0.06)';
       this.ctx.lineWidth = 1;
@@ -181,10 +261,9 @@ export class TopicConstellation {
 
       // 2. Physics & drift simulation
       this.nodes.forEach(n => {
-        n.x += n.vx + Math.sin(time + n.radius) * 0.15;
-        n.y += n.vy + Math.cos(time + n.radius) * 0.15;
+        n.x += n.vx + Math.sin(time + n.radius) * 0.12;
+        n.y += n.vy + Math.cos(time + n.radius) * 0.12;
 
-        // Keep inside bounds
         const pad = n.radius + 15;
         if (n.x < pad) { n.x = pad; n.vx *= -1; }
         if (n.x > this.width - pad) { n.x = this.width - pad; n.vx *= -1; }
@@ -201,7 +280,6 @@ export class TopicConstellation {
 
         const isHighlighted = (this.hoveredNode && (this.hoveredNode.id === src.id || this.hoveredNode.id === tgt.id));
         const alpha = isHighlighted ? 0.65 : 0.18;
-        const color = isHighlighted ? '#3898ff' : 'rgba(148, 163, 184, 0.2)';
 
         this.ctx.beginPath();
         this.ctx.moveTo(src.x, src.y);
@@ -216,9 +294,9 @@ export class TopicConstellation {
         const matchesFilter = (this.activeFilter === 'all' || node.category === this.activeFilter);
         const isHovered = (this.hoveredNode && this.hoveredNode.id === node.id);
         const isSelected = (this.selectedNode && this.selectedNode.id === node.id);
-        const colors = this.categoryColors[node.category] || this.categoryColors.default;
+        const colors = this.getCategoryColor(node.category);
 
-        const opacity = matchesFilter ? 1 : 0.25;
+        const opacity = matchesFilter ? 1 : 0.22;
 
         // Glow ring for user interest or hovered
         if (node.is_user_interest || isHovered || isSelected) {

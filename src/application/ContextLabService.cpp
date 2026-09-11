@@ -428,78 +428,183 @@ core::Result<domain::TopicGraphData> ContextLabService::getTopicGraph(const std:
 
     domain::TopicGraphData data;
 
-    struct SeedNode {
-        std::string id;
-        std::string label;
-        std::string category;
-        int count;
-        double weight;
-    };
-
-    std::vector<SeedNode> seeds = {
-        {"ilpf", "ILPF", "Sistemas Produtivos", 14, 1.8},
-        {"balanco-carbono", "Balanço de Carbono", "Clima & Sustentabilidade", 11, 1.7},
-        {"bioma-pampa", "Bioma Pampa", "Biomas & Ecologia", 8, 1.4},
-        {"pastagens-precisao", "Pastagens de Precisão", "Agro Digital", 10, 1.6},
-        {"sensoriamento-remoto", "Sensoriamento Remoto", "Agro Digital", 9, 1.5},
-        {"bioinsumos", "Bioinsumos", "Biotecnologia", 8, 1.3},
-        {"genomica-animal", "Genômica Animal", "Biotecnologia", 6, 1.3},
-        {"soja-baixo-carbono", "Soja de Baixo Carbono", "Sistemas Produtivos", 9, 1.4},
-        {"ia-visao-agro", "IA & Visão Computacional", "Agro Digital", 7, 1.2},
-        {"manejo-agua", "Manejo da Água", "Clima & Sustentabilidade", 5, 1.1},
-        {"contextlab-meta", "Contexto & Metadados", "Governança Epistêmica", 6, 1.2}
-    };
-
-    std::map<std::string, domain::TopicGraphNode> node_map;
-    for (const auto& s : seeds) {
-        node_map[s.id] = domain::TopicGraphNode{
-            .id = s.id,
-            .label = s.label,
-            .category = s.category,
-            .count = s.count,
-            .weight = s.weight,
-            .is_user_interest = false
-        };
-    }
-
-    std::vector<domain::TopicGraphEdge> edges = {
-        {"ilpf", "balanco-carbono", 5, "relatesTo"},
-        {"ilpf", "pastagens-precisao", 4, "relatesTo"},
-        {"ilpf", "bioma-pampa", 4, "co-occurs"},
-        {"balanco-carbono", "bioma-pampa", 3, "relatesTo"},
-        {"pastagens-precisao", "sensoriamento-remoto", 4, "leverages"},
-        {"sensoriamento-remoto", "ia-visao-agro", 4, "integrates"},
-        {"bioinsumos", "soja-baixo-carbono", 3, "contributesTo"},
-        {"soja-baixo-carbono", "balanco-carbono", 4, "verifies"},
-        {"genomica-animal", "pastagens-precisao", 3, "connectsTo"},
-        {"manejo-agua", "sensoriamento-remoto", 3, "monitors"},
-        {"contextlab-meta", "ilpf", 3, "describes"},
-        {"contextlab-meta", "balanco-carbono", 3, "describes"}
-    };
-
     auto all_docs = repo_->getAllDocuments().value_or(std::vector<domain::Document>{});
-    int accessible_docs = 0;
+    std::vector<domain::Document> accessible_docs;
     for (const auto& doc : all_docs) {
         if (isDocumentAccessible(doc, user)) {
-            accessible_docs++;
-            if (user.has_value() && !doc.owner.empty() && doc.owner == user->email) {
-                for (auto& [nid, nnode] : node_map) {
-                    if (doc.title.find(nnode.label) != std::string::npos ||
-                        doc.primary_project.find(nnode.label) != std::string::npos) {
-                        nnode.is_user_interest = true;
-                        nnode.count += 2;
-                        nnode.weight += 0.3;
-                    }
-                }
-            }
+            accessible_docs.push_back(doc);
         }
     }
 
+    std::map<std::string, domain::TopicGraphNode> node_map;
+    std::map<std::pair<std::string, std::string>, domain::TopicGraphEdge> edge_map;
+
+    auto add_edge = [&](const std::string& src, const std::string& tgt, const std::string& rel_type, int w = 1) {
+        if (src.empty() || tgt.empty() || src == tgt) return;
+        std::pair<std::string, std::string> key = (src < tgt) ? std::make_pair(src, tgt) : std::make_pair(tgt, src);
+        auto it = edge_map.find(key);
+        if (it != edge_map.end()) {
+            it->second.weight += w;
+        } else {
+            edge_map[key] = domain::TopicGraphEdge{
+                .source = src,
+                .target = tgt,
+                .weight = w,
+                .relation_type = rel_type
+            };
+        }
+    };
+
+    auto categorize_role = [](const std::string& role) -> std::string {
+        if (role.find("strategy") != std::string::npos || role.find("method") != std::string::npos || role.find("pipeline") != std::string::npos) {
+            return "Métodos & Estratégias";
+        }
+        if (role.find("context") != std::string::npos || role.find("metadata") != std::string::npos || role.find("governance") != std::string::npos || role.find("authority") != std::string::npos) {
+            return "Metadados & Governança";
+        }
+        if (role.find("artifact") != std::string::npos || role.find("study") != std::string::npos) {
+            return "Artefatos de Pesquisa";
+        }
+        if (role.empty() || role == "concept") {
+            return "Conceitos";
+        }
+        return "Conceitos de Pesquisa";
+    };
+
+    auto format_label = [](std::string_view raw) -> std::string {
+        std::string out;
+        bool cap = true;
+        for (char c : raw) {
+            if (c == '_' || c == '-') {
+                out += ' ';
+                cap = true;
+            } else {
+                out += cap ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;
+                cap = false;
+            }
+        }
+        return out;
+    };
+
+    for (const auto& doc : accessible_docs) {
+        bool is_owned = (user.has_value() && !doc.owner.empty() && doc.owner == user->email);
+
+        // 1. Concepts in document
+        auto concepts = repo_->getConceptsForDocument(doc.id).value_or(std::vector<domain::Concept>{});
+        for (const auto& c : concepts) {
+            if (node_map.find(c.id) == node_map.end()) {
+                node_map[c.id] = domain::TopicGraphNode{
+                    .id = c.id,
+                    .label = c.label.empty() ? format_label(c.id) : c.label,
+                    .category = categorize_role(c.role),
+                    .count = 1,
+                    .weight = 1.2 + (is_owned ? 0.6 : 0.0),
+                    .is_user_interest = is_owned
+                };
+            } else {
+                auto& n = node_map[c.id];
+                n.count += 1;
+                n.weight += 0.4 + (is_owned ? 0.4 : 0.0);
+                if (is_owned) n.is_user_interest = true;
+            }
+        }
+
+        // Co-occurrence edges between concepts in the same document
+        for (size_t i = 0; i < concepts.size(); ++i) {
+            for (size_t j = i + 1; j < concepts.size(); ++j) {
+                add_edge(concepts[i].id, concepts[j].id, "co-occurs", 1);
+            }
+        }
+
+        // 2. Projects & Research Domains
+        if (!doc.primary_project.empty()) {
+            std::string proj_id = doc.primary_project;
+            auto proj_opt = repo_->getProject(proj_id).value_or(std::nullopt);
+            std::string proj_name = (proj_opt.has_value() && !proj_opt->name.empty()) ? proj_opt->name : proj_id;
+
+            if (node_map.find(proj_id) == node_map.end()) {
+                node_map[proj_id] = domain::TopicGraphNode{
+                    .id = proj_id,
+                    .label = proj_name,
+                    .category = "Projetos",
+                    .count = 1,
+                    .weight = 1.6 + (is_owned ? 0.6 : 0.0),
+                    .is_user_interest = is_owned
+                };
+            } else {
+                auto& n = node_map[proj_id];
+                n.count += 1;
+                n.weight += 0.5;
+                if (is_owned) n.is_user_interest = true;
+            }
+
+            // Link concepts in this document to the project
+            for (const auto& c : concepts) {
+                add_edge(proj_id, c.id, "desenvolve", 1);
+            }
+
+            // Project domains
+            if (proj_opt.has_value()) {
+                for (const auto& dom : proj_opt->research_domain) {
+                    std::string dom_id = "domain:" + dom;
+                    if (node_map.find(dom_id) == node_map.end()) {
+                        node_map[dom_id] = domain::TopicGraphNode{
+                            .id = dom_id,
+                            .label = format_label(dom),
+                            .category = "Domínios de Pesquisa",
+                            .count = 1,
+                            .weight = 1.3,
+                            .is_user_interest = is_owned
+                        };
+                    } else {
+                        node_map[dom_id].count += 1;
+                    }
+                    add_edge(proj_id, dom_id, "abrange", 2);
+                }
+            }
+        }
+
+        // 3. Document Relations
+        auto relations = repo_->getRelationsForDocument(doc.id).value_or(std::vector<domain::Relation>{});
+        for (const auto& r : relations) {
+            const std::string& subj_id = r.subject;
+            const std::string& obj_id = r.object;
+
+            if (node_map.find(subj_id) == node_map.end()) {
+                node_map[subj_id] = domain::TopicGraphNode{
+                    .id = subj_id,
+                    .label = format_label(subj_id),
+                    .category = "Artefatos & Entidades",
+                    .count = 1,
+                    .weight = 1.1,
+                    .is_user_interest = is_owned
+                };
+            }
+            if (node_map.find(obj_id) == node_map.end()) {
+                node_map[obj_id] = domain::TopicGraphNode{
+                    .id = obj_id,
+                    .label = format_label(obj_id),
+                    .category = "Artefatos & Entidades",
+                    .count = 1,
+                    .weight = 1.1,
+                    .is_user_interest = false
+                };
+            }
+            add_edge(subj_id, obj_id, r.predicate, 2);
+        }
+    }
+
+    data.nodes.reserve(node_map.size());
     for (const auto& [_, node] : node_map) {
         data.nodes.push_back(node);
     }
-    data.edges = std::move(edges);
-    data.total_documents = accessible_docs;
+
+    data.edges.reserve(edge_map.size());
+    for (const auto& [_, edge] : edge_map) {
+        data.edges.push_back(edge);
+    }
+
+    data.total_documents = static_cast<int>(accessible_docs.size());
     data.total_topics = static_cast<int>(data.nodes.size());
 
     return core::makeOk(std::move(data));
